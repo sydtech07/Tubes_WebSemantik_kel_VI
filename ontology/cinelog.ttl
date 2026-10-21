@@ -1,0 +1,115 @@
+@prefix cin:    <http://localhost:8000/ontology#> .
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema: <https://schema.org/> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix dct:    <http://purl.org/dc/terms/> .
+
+# ---------------------------------------------------------------------------
+# Ontologi CINÉLOG
+# Kelas dan properti sendiri, dikaitkan ke schema.org / SKOS bila ada padanannya.
+# Alamat dasar http://localhost:8000/ diganti otomatis oleh skrip sesuai BASE_URI.
+# Dapat dibuka di Protégé (File > Open) untuk diperiksa.
+# ---------------------------------------------------------------------------
+
+<http://localhost:8000/ontology> a owl:Ontology ;
+    dct:title "Ontologi CINÉLOG"@id , "CINÉLOG Ontology"@en ;
+    dct:description "Ontologi untuk film rilis 2026, genre, orang (aktor, sutradara, penulis), dan peran pemeran."@id ;
+    owl:versionInfo "1.0" .
+
+# ----- Kelas -----------------------------------------------------------------
+cin:Movie a owl:Class ;
+    rdfs:subClassOf schema:Movie ;
+    rdfs:label "Film"@id , "Movie"@en ;
+    rdfs:comment "Karya film yang dirilis pada rentang Januari-September 2026."@id .
+
+cin:Person a owl:Class ;
+    rdfs:subClassOf schema:Person ;
+    rdfs:label "Orang"@id , "Person"@en ;
+    rdfs:comment "Aktor, sutradara, penulis, atau komposer yang terlibat dalam film."@id .
+
+cin:Genre a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Genre"@id , "Genre"@en ;
+    rdfs:comment "Kategori film, misalnya Action atau Drama."@id .
+
+cin:CastRole a owl:Class ;
+    rdfs:label "Peran pemeran"@id , "Cast role"@en ;
+    rdfs:comment "Hubungan antara satu film, satu aktor, dan nama karakter yang diperankan beserta urutan tampil."@id .
+
+# ----- Object property -------------------------------------------------------
+cin:hasCastRole a owl:ObjectProperty ;
+    rdfs:label "memiliki peran pemeran"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range cin:CastRole .
+
+cin:byActor a owl:ObjectProperty ;
+    rdfs:label "diperankan oleh"@id ;
+    rdfs:domain cin:CastRole ;
+    rdfs:range cin:Person .
+
+cin:backdropImage a owl:ObjectProperty ;
+    rdfs:label "gambar latar"@id ;
+    rdfs:domain cin:Movie .
+
+# ----- Datatype property -----------------------------------------------------
+cin:tmdbId a owl:DatatypeProperty ;
+    rdfs:label "ID TMDB"@id ;
+    rdfs:range xsd:integer .
+
+cin:imdbId a owl:DatatypeProperty ;
+    rdfs:label "ID IMDb"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:string .
+
+cin:runtimeMinutes a owl:DatatypeProperty ;
+    rdfs:label "durasi (menit)"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:integer .
+
+cin:originalLanguage a owl:DatatypeProperty ;
+    rdfs:label "bahasa asli"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:string .
+
+cin:popularity a owl:DatatypeProperty ;
+    rdfs:label "skor popularitas TMDB"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:decimal .
+
+cin:tmdbVoteAverage a owl:DatatypeProperty ;
+    rdfs:label "rata-rata suara TMDB"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:decimal .
+
+cin:tmdbVoteCount a owl:DatatypeProperty ;
+    rdfs:label "jumlah suara TMDB"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:integer .
+
+cin:budget a owl:DatatypeProperty ;
+    rdfs:label "anggaran (USD)"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:integer .
+
+cin:revenue a owl:DatatypeProperty ;
+    rdfs:label "pendapatan (USD)"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range xsd:integer .
+
+cin:characterName a owl:DatatypeProperty ;
+    rdfs:label "nama karakter"@id ;
+    rdfs:domain cin:CastRole ;
+    rdfs:range xsd:string .
+
+cin:billingOrder a owl:DatatypeProperty ;
+    rdfs:label "urutan tampil"@id ;
+    rdfs:domain cin:CastRole ;
+    rdfs:range xsd:integer .
+
+cin:knownForDepartment a owl:DatatypeProperty ;
+    rdfs:label "dikenal di bidang"@id ;
+    rdfs:domain cin:Person ;
+    rdfs:range xsd:string .

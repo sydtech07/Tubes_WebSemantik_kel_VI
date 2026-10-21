@@ -1,0 +1,28 @@
+{
+  "raw_files": 700,
+  "film_lolos_validasi": 681,
+  "film_akhir": 500,
+  "dipangkas_karena_melebihi_max": 181,
+  "gugur_per_alasan": {
+    "runtime_tidak_valid": 16,
+    "tanpa_sinopsis": 2,
+    "tanpa_pemeran": 1
+  },
+  "film_per_bulan": {
+    "2026-01": 45,
+    "2026-02": 67,
+    "2026-03": 53,
+    "2026-04": 60,
+    "2026-05": 57,
+    "2026-06": 50,
+    "2026-07": 58,
+    "2026-08": 52,
+    "2026-09": 58
+  },
+  "jumlah_genre": 19,
+  "jumlah_orang": 7807,
+  "jumlah_credit": 8858,
+  "persen_punya_imdb_id": 100.0,
+  "persen_punya_wikidata_id": 90.2,
+  "persen_punya_sinopsis_id": 16.0
+}

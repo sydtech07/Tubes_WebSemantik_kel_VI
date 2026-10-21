@@ -1,0 +1,96 @@
+# CINÉLOG - infrastruktur multi-database
+#   mariadb  : data transaksional (user, review, rating, watchlist) + katalog relasional
+#   fuseki   : triple store RDF + SPARQL endpoint (penyimpanan utama data semantik)
+#   mongo    : riwayat chat chatbot (dokumen semi-terstruktur)
+#
+# Jalankan:  docker compose up -d --build
+# Hentikan:  docker compose down            (data tetap ada)
+# Reset total (HAPUS semua data): docker compose down -v
+
+name: cinelog
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: cinelog-mariadb
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT_HOST:-3307}:3306"   # 3307 di host agar tidak bentrok dengan XAMPP/Laragon (3306)
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      # File .sql di sini dijalankan OTOMATIS (urut abjad) hanya saat volume masih kosong
+      - ./database/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  fuseki:
+    build:
+      context: ./docker/fuseki
+      args:
+        FUSEKI_VERSION: ${FUSEKI_VERSION:-6.2.0}
+    container_name: cinelog-fuseki
+    restart: unless-stopped
+    environment:
+      JVM_ARGS: "-Xmx1g"
+    ports:
+      - "3030:3030"
+    volumes:
+      - fuseki_data:/fuseki
+
+  mongo:
+    image: mongo:7
+    container_name: cinelog-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-cinelog_chat}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo/init:/docker-entrypoint-initdb.d:ro
+
+  # Opsional: antarmuka web MariaDB  ->  docker compose --profile tools up -d
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: cinelog-phpmyadmin
+    profiles: ["tools"]
+    environment:
+      PMA_HOST: mariadb
+    ports:
+      - "8081:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  # Dipakai di Part 2 (Laravel di dalam container). Belum perlu dijalankan sekarang.
+  #   docker compose --profile app up -d --build
+  app:
+    build:
+      context: ./docker/php
+    container_name: cinelog-app
+    profiles: ["app"]
+    working_dir: /var/www/html
+    volumes:
+      - ./web:/var/www/html
+    ports:
+      - "8000:8000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+
+volumes:
+  mariadb_data:
+  fuseki_data:
+  mongo_data:

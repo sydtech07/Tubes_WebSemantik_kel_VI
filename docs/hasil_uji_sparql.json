@@ -1,0 +1,156 @@
+{
+  "query": [
+    {
+      "no": 1,
+      "uji_kasus": "Hitung seluruh film",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie }",
+      "diharapkan": "500",
+      "aktual": "500",
+      "valid": true
+    },
+    {
+      "no": 2,
+      "uji_kasus": "Hitung seluruh genre",
+      "query": "SELECT (COUNT(DISTINCT ?g) AS ?n) WHERE { ?g a cin:Genre }",
+      "diharapkan": "19",
+      "aktual": "19",
+      "valid": true
+    },
+    {
+      "no": 3,
+      "uji_kasus": "Tampilkan film bergenre \"Drama\" (genre paling banyak)",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label \"Drama\"@en }",
+      "diharapkan": "174",
+      "aktual": "174",
+      "valid": true
+    },
+    {
+      "no": 4,
+      "uji_kasus": "Distribusi jumlah film untuk SEMUA genre",
+      "query": "SELECT ?genre (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label ?genre } GROUP BY ?genre",
+      "diharapkan": "{'Action': 129, 'Science Fiction': 53, 'Adventure': 55, 'Horror': 84, 'Thriller': 155, 'Fantasy': 36, 'Comedy': 155, 'Mystery': 38, 'Drama': 174, 'Animation': 4",
+      "aktual": "19 baris hasil",
+      "valid": true
+    },
+    {
+      "no": 5,
+      "uji_kasus": "Distribusi jumlah film untuk SEMUA bulan rilis",
+      "query": "SELECT ?bulan (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:datePublished ?d } GROUP BY (SUBSTR(STR(?d), 1, 7) AS ?bulan)",
+      "diharapkan": "{'2026-07': 58, '2026-09': 58, '2026-08': 52, '2026-05': 57, '2026-06': 50, '2026-03': 53, '2026-04': 60, '2026-01': 45, '2026-02': 67}",
+      "aktual": "9 baris hasil",
+      "valid": true
+    },
+    {
+      "no": 6,
+      "uji_kasus": "Tampilkan film yang rilis pada bulan 2026-02",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:datePublished ?d . FILTER(?d >= \"2026-02-01\"^^xsd:date && ?d <= \"2026-02-28\"^^xsd:date) }",
+      "diharapkan": "67",
+      "aktual": "67",
+      "valid": true
+    },
+    {
+      "no": 7,
+      "uji_kasus": "Tampilkan film berdurasi lebih dari 150 menit",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m cin:runtimeMinutes ?r . FILTER(?r > 150) }",
+      "diharapkan": "31",
+      "aktual": "31",
+      "valid": true
+    },
+    {
+      "no": 8,
+      "uji_kasus": "Tampilkan film yang disutradarai \"Andrew Stanton\" (sutradara dengan film terbanyak)",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:director ?p . ?p schema:name \"Andrew Stanton\" }",
+      "diharapkan": "2",
+      "aktual": "2",
+      "valid": true
+    },
+    {
+      "no": 9,
+      "uji_kasus": "Film paling populer (urut skor popularitas menurun)",
+      "query": "SELECT ?title WHERE { ?m a cin:Movie ; schema:name ?title ; cin:popularity ?p } ORDER BY DESC(?p) LIMIT 1",
+      "diharapkan": "Spider-Man: Brand New Day",
+      "aktual": "Spider-Man: Brand New Day",
+      "valid": true
+    },
+    {
+      "no": 10,
+      "uji_kasus": "Hitung pemeran film \"Spider-Man: Brand New Day\"",
+      "query": "SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?m schema:name \"Spider-Man: Brand New Day\" ; schema:actor ?a }",
+      "diharapkan": "15",
+      "aktual": "15",
+      "valid": true
+    },
+    {
+      "no": 11,
+      "uji_kasus": "Hitung peran (karakter) pada film \"Spider-Man: Brand New Day\"",
+      "query": "SELECT (COUNT(DISTINCT ?r) AS ?n) WHERE { ?m schema:name \"Spider-Man: Brand New Day\" ; cin:hasCastRole ?r . ?r cin:characterName ?c ; cin:byActor ?a }",
+      "diharapkan": "15",
+      "aktual": "15",
+      "valid": true
+    },
+    {
+      "no": 12,
+      "uji_kasus": "Aktor yang tampil di film terbanyak",
+      "query": "SELECT ?name (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:actor ?a . ?a schema:name ?name } GROUP BY ?a ?name ORDER BY DESC(?n) LIMIT 1",
+      "diharapkan": "(6, {'Eric Bauza'})",
+      "aktual": "name=Eric Bauza; n=6",
+      "valid": true
+    },
+    {
+      "no": 13,
+      "uji_kasus": "Tampilkan film bergenre \"Action\" sekaligus \"Thriller\" (kombinasi paling umum)",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g1 , ?g2 . ?g1 rdfs:label \"Action\"@en . ?g2 rdfs:label \"Thriller\"@en }",
+      "diharapkan": "62",
+      "aktual": "62",
+      "valid": true
+    },
+    {
+      "no": 14,
+      "uji_kasus": "Hitung film yang tertaut ke Wikidata (owl:sameAs)",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie ; owl:sameAs ?w . FILTER(STRSTARTS(STR(?w), \"http://www.wikidata.org/entity/Q\")) }",
+      "diharapkan": "451",
+      "aktual": "451",
+      "valid": true
+    },
+    {
+      "no": 15,
+      "uji_kasus": "Hitung film yang BELUM tertaut ke Wikidata",
+      "query": "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie . FILTER NOT EXISTS { ?m owl:sameAs ?w } }",
+      "diharapkan": "49",
+      "aktual": "49",
+      "valid": true
+    }
+  ],
+  "infrastruktur": [
+    {
+      "aspect": "Infrastruktur",
+      "test": "Menjalankan web server (ping)",
+      "status": "Berhasil",
+      "detail": ""
+    },
+    {
+      "aspect": "Operasi triple store",
+      "test": "Penambahan triple",
+      "status": "Berhasil",
+      "detail": ""
+    },
+    {
+      "aspect": "Operasi triple store",
+      "test": "Penghapusan triple",
+      "status": "Berhasil",
+      "detail": ""
+    },
+    {
+      "aspect": "Operasi query",
+      "test": "Melakukan query (hitung seluruh triple)",
+      "status": "Berhasil",
+      "detail": "123591 triple"
+    },
+    {
+      "aspect": "Validasi query",
+      "test": "Jumlah triple di Fuseki = jumlah triple berkas lokal",
+      "status": "Berhasil",
+      "detail": "Fuseki 123591 vs lokal 123591"
+    }
+  ]
+}

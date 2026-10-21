@@ -1,0 +1,10 @@
+{
+  "base_uri": "http://localhost:8000/",
+  "jumlah_triple": 123509,
+  "film": 500,
+  "orang": 7807,
+  "genre": 19,
+  "peran_pemeran": 6952,
+  "film_tertaut_wikidata": 451,
+  "dilewati": {}
+}

@@ -1,0 +1,39 @@
+# Query federasi: menggabungkan dataset CINÉLOG (Fuseki) dengan Wikidata (dataset eksternal).
+# Jalankan di tab "query" pada http://localhost:3030 (dataset /cinelog).
+#
+# Film CINÉLOG yang punya owl:sameAs ke Wikidata diperkaya dengan data yang TIDAK ada di dataset kita:
+# negara asal (P495) dan box office (P2142) dari Wikidata.
+#
+# Catatan: butuh internet dari dalam container Fuseki. Query ini belum diuji dari lingkungan pengembang
+# (jaringan terbatas); jika gagal, lihat 'docker compose logs fuseki'. Pembatasan LIMIT sengaja kecil
+# supaya tidak membebani layanan publik Wikidata.
+
+PREFIX cin:    <http://localhost:8000/ontology#>
+PREFIX schema: <https://schema.org/>
+PREFIX owl:    <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX wdt:    <http://www.wikidata.org/prop/direct/>
+
+SELECT ?title ?wd ?negaraAsal ?boxOffice
+WHERE {
+  {
+    SELECT ?title ?wd
+    WHERE {
+      ?film a cin:Movie ;
+            schema:name ?title ;
+            cin:popularity ?pop ;
+            owl:sameAs ?wd .
+      FILTER(STRSTARTS(STR(?wd), "http://www.wikidata.org/entity/Q"))
+    }
+    ORDER BY DESC(?pop)
+    LIMIT 5
+  }
+  SERVICE <https://query.wikidata.org/sparql> {
+    OPTIONAL { ?wd wdt:P2142 ?boxOffice . }
+    OPTIONAL {
+      ?wd wdt:P495 ?negara .
+      ?negara rdfs:label ?negaraAsal .
+      FILTER(LANG(?negaraAsal) = "en")
+    }
+  }
+}
