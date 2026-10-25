@@ -19,8 +19,7 @@ RUN apt-get update \
 WORKDIR /fuseki
 EXPOSE 3030
 
-ENTRYPOINT ["/opt/fuseki/fuseki-server"]
-# Dataset persisten TDB2 bernama "cinelog" -> http://localhost:3030/cinelog
-# --update mengizinkan SPARQL Update / upload data (tanpa ini dataset read-only)
+ENTRYPOINT ["/bin/sh", "-c", "mkdir -p \"$FUSEKI_BASE/databases/cinelog\" && exec /opt/fuseki/fuseki-server \"$@\"", "--"]
+
 CMD ["--update", "--tdb2", "--loc=/fuseki/databases/cinelog", "/cinelog"]
 

@@ -61,4 +61,10 @@ class Movie extends Model
             ? config('cinelog.tmdb_image_base') . 'w342' . $this->poster_path
             : null;
     }
+
+    /** IRI resource film ini di RDF (sama dengan yang dibuat pipeline/04_build_rdf.py). */
+    public function getRdfIriAttribute(): string
+    {
+        return rtrim(config('cinelog.base_uri'), '/') . '/resource/movie/' . $this->tmdb_id;
+    }
 }

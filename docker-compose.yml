@@ -6,6 +6,10 @@
 # Jalankan:  docker compose up -d --build
 # Hentikan:  docker compose down            (data tetap ada)
 # Reset total (HAPUS semua data): docker compose down -v
+#
+# Catatan port: semua port diikat ke 127.0.0.1 (IPv4 loopback). Ini mencegah browser Windows
+# mencoba IPv6 (::1) yang menggantung di Docker Desktop, sehingga http://localhost:PORT cepat,
+# dan database tidak terbuka ke jaringan Wi-Fi.
 
 name: cinelog
 
@@ -21,7 +25,7 @@ services:
       MARIADB_USER: ${DB_USERNAME}
       MARIADB_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${DB_PORT_HOST:-3307}:3306"   # 3307 di host agar tidak bentrok dengan XAMPP/Laragon (3306)
+      - "127.0.0.1:${DB_PORT_HOST:-3307}:3306"   # 3307 di host agar tidak bentrok dengan XAMPP/Laragon (3306)
     volumes:
       - mariadb_data:/var/lib/mysql
       # File .sql di sini dijalankan OTOMATIS (urut abjad) hanya saat volume masih kosong
@@ -42,7 +46,7 @@ services:
     environment:
       JVM_ARGS: "-Xmx1g"
     ports:
-      - "3030:3030"
+      - "127.0.0.1:3030:3030"
     volumes:
       - fuseki_data:/fuseki
 
@@ -55,7 +59,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-cinelog_chat}
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
       - ./docker/mongo/init:/docker-entrypoint-initdb.d:ro
@@ -68,12 +72,12 @@ services:
     environment:
       PMA_HOST: mariadb
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     depends_on:
       mariadb:
         condition: service_healthy
 
-  # Dipakai di Part 2 (Laravel di dalam container). Belum perlu dijalankan sekarang.
+  # Laravel di dalam container.
   #   docker compose --profile app up -d --build
   app:
     build:
@@ -81,10 +85,14 @@ services:
     container_name: cinelog-app
     profiles: ["app"]
     working_dir: /var/www/html
+    environment:
+      # Server PHP bawaan melayani beberapa permintaan sekaligus (tanpa ini hanya satu, sehingga
+      # satu permintaan yang lambat membuat semua tab ikut menunggu).
+      PHP_CLI_SERVER_WORKERS: "4"
     volumes:
       - ./web:/var/www/html
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       mariadb:
         condition: service_healthy

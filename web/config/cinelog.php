@@ -9,4 +9,7 @@ return [
 
     // Basis URL gambar TMDB (poster, foto pemeran).
     'tmdb_image_base' => 'https://image.tmdb.org/t/p/',
+
+    // Jumlah film per halaman katalog (2B-2).
+    'page_size' => 24,
 ];

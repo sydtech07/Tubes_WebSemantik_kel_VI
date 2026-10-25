@@ -11,8 +11,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Unduh paket MongoDB secara langsung, lalu pasang dari arsip lokal.
-RUN curl -fsSL --retry 3 --retry-delay 2 \
-      https://pecl.php.net/get/mongodb-2.5.5.tgz \
+RUN curl -fSL --retry 3 --retry-delay 2 \
+      https://github.com/mongodb/mongo-php-driver/releases/download/2.5.5/mongodb-2.5.5.tgz \
       -o /tmp/mongodb-2.5.5.tgz \
  && pecl install /tmp/mongodb-2.5.5.tgz \
  && docker-php-ext-enable mongodb \
