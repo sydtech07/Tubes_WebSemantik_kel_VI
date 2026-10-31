@@ -32,3 +32,4 @@ Thumbs.db
 # Lindungi dependensi di semua folder
 vendor/
 node_modules/
+.venv-rdfa/

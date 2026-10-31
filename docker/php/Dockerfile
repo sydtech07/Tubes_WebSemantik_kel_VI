@@ -19,6 +19,8 @@ RUN curl -fSL --retry 3 --retry-delay 2 \
  && rm -f /tmp/mongodb-2.5.5.tgz
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Pengaturan OPcache (lihat opcache.ini di folder ini)
+COPY opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 
 WORKDIR /var/www/html
 EXPOSE 8000

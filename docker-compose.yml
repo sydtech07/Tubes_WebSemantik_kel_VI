@@ -96,7 +96,7 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
-    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
 
 volumes:
   mariadb_data:

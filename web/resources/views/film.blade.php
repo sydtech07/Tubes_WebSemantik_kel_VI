@@ -39,7 +39,8 @@
 <article vocab="https://schema.org/"
          prefix="cin: {{ $cinNs }} owl: http://www.w3.org/2002/07/owl# xsd: http://www.w3.org/2001/XMLSchema#"
          typeof="Movie cin:Movie"
-         resource="{{ $film['iri'] }}">
+         resource="{{ $film['iri'] }}"
+         lang="">
 
     <link property="url" href="{{ $film['url'] }}">
     <meta property="cin:tmdbId" content="{{ $movie->tmdb_id }}" datatype="xsd:integer">
@@ -147,7 +148,7 @@
                                             {{ $inisial($c['name']) }}
                                         @endif
                                     </div>
-                                    <div class="cl-cast-name" property="name">{{ $c['name'] }}</div>
+                                    <a class="cl-cast-name" resource="{{ $c['iri'] }}" href="{{ route('person.show', ['id' => \Illuminate\Support\Str::afterLast($c['iri'], '/')]) }}"><span property="name">{{ $c['name'] }}</span></a>
                                     @if ($c['character']) <span class="cl-cast-role">{{ $c['character'] }}</span> @endif
                                 </li>
                             @endforeach
@@ -163,42 +164,42 @@
                 <div class="cl-panel mb-4">
                     <h2><i class="bi bi-info-circle"></i> Informasi</h2>
                     <dl class="cl-dl mb-0">
-                        @if ($film['directors'])
+                @if ($film['directors'])
                             <dt>Sutradara</dt>
                             <dd>
                                 @foreach ($film['directors'] as $p)
-                                    <span property="director" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><span property="name">{{ $p['name'] }}</span></span>@if (! $loop->last), @endif
+                                    <span property="director" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><a resource="{{ $p['iri'] }}" href="{{ route('person.show', ['id' => \Illuminate\Support\Str::afterLast($p['iri'], '/')]) }}"><span property="name">{{ $p['name'] }}</span></a></span>@if (! $loop->last), @endif
                                 @endforeach
                             </dd>
-                        @endif
-                        @if ($film['writers'])
-                            <dt>Penulis</dt>
-                            <dd>
-                                @foreach ($film['writers'] as $p)
-                                    <span property="author" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><span property="name">{{ $p['name'] }}</span></span>@if (! $loop->last), @endif
-                                @endforeach
-                            </dd>
-                        @endif
-                        @if ($film['composers'])
-                            <dt>Musik</dt>
-                            <dd>
-                                @foreach ($film['composers'] as $p)
-                                    <span property="musicBy" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><span property="name">{{ $p['name'] }}</span></span>@if (! $loop->last), @endif
-                                @endforeach
-                            </dd>
-                        @endif
-                        @if ($film['lang'])
-                            <dt>Bahasa asli</dt>
-                            <dd>{{ strtoupper($film['lang']) }}</dd>
-                        @endif
-                        @if ($film['vote'])
-                            <dt>Skor TMDB</dt>
-                            <dd>
-                                <i class="bi bi-star-fill" style="color:var(--cl-gold)"></i>
-                                <span property="cin:tmdbVoteAverage" content="{{ $film['vote'] }}" datatype="xsd:decimal">{{ number_format((float) $film['vote'], 1) }}</span>
-                                @if ($film['votes'])
-                                    <span class="text-muted small">(<span property="cin:tmdbVoteCount" content="{{ $film['votes'] }}" datatype="xsd:integer">{{ number_format($film['votes'], 0, ',', '.') }}</span> suara)</span>
-                                @endif
+                @endif
+                 @if ($film['writers'])
+                    <dt>Penulis</dt>
+                    <dd>
+                         @foreach ($film['writers'] as $p)
+                              <span property="author" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><a resource="{{ $p['iri'] }}" href="{{ route('person.show', ['id' => \Illuminate\Support\Str::afterLast($p['iri'], '/')]) }}"><span property="name">{{ $p['name'] }}</span></a></span>@if (! $loop->last), @endif
+                         @endforeach
+                    </dd>
+                 @endif
+                 @if ($film['composers'])
+                    <dt>Musik</dt>
+                      <dd>
+                          @foreach ($film['composers'] as $p)
+                               <span property="musicBy" typeof="Person cin:Person" resource="{{ $p['iri'] }}"><a resource="{{ $p['iri'] }}" href="{{ route('person.show', ['id' => \Illuminate\Support\Str::afterLast($p['iri'], '/')]) }}"><span property="name">{{ $p['name'] }}</span></a></span>@if (! $loop->last), @endif
+                          @endforeach
+                      </dd>
+                @endif
+                 @if ($film['lang'])
+                     <dt>Bahasa asli</dt>
+                     <dd>{{ strtoupper($film['lang']) }}</dd>
+                @endif
+                 @if ($film['vote'])
+                      <dt>Skor TMDB</dt>
+                      <dd>
+                          <i class="bi bi-star-fill" style="color:var(--cl-gold)"></i>
+                          <span property="cin:tmdbVoteAverage" content="{{ $film['vote'] }}" datatype="xsd:decimal">{{ number_format((float) $film['vote'], 1) }}</span>
+                         @if ($film['votes'])
+                             <span class="text-muted small">(<span property="cin:tmdbVoteCount" content="{{ $film['votes'] }}" datatype="xsd:integer">{{ number_format($film['votes'], 0, ',', '.') }}</span> suara)</span>
+                         @endif
                             </dd>
                         @endif
                         @if ($film['budget'] >= 1000)

@@ -26,7 +26,17 @@ class ResourceController extends Controller
 
         return redirect()->route('film.show', $movie, 303)->header('Vary', 'Accept');
     }
+    public function person(Request $request, int $personId, SparqlClient $sparql)
+    {
+        if ($request->prefers(['text/html', 'application/xhtml+xml', 'text/turtle']) === 'text/turtle') {
+            return response($sparql->describe($sparql->resource('person', $personId)), 200, [
+                'Content-Type' => 'text/turtle; charset=utf-8',
+                'Vary'         => 'Accept',
+            ]);
+        }
 
+        return redirect()->route('person.show', ['id' => $personId], 303)->header('Vary', 'Accept');
+    }
     public function genre(int $genreId)
     {
         return redirect()->route('home', ['genre' => $genreId], 303);

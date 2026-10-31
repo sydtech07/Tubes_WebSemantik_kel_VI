@@ -28,7 +28,21 @@ class MovieRepository
      *
      * @return array{items: array<int, array<string, mixed>>, total: int}
      */
-    public function catalog(string $q, ?int $genreId, string $sort, int $page, int $perPage): array
+        public function catalog(string $q, ?int $genreId, string $sort, int $page, int $perPage): array
+    {
+        // Cache 5 menit: katalog tidak berubah antar permintaan, dan tiap halaman butuh 2 query SPARQL.
+        $key = 'cinelog.catalog.v1.' . md5(json_encode([$q, $genreId, $sort, $page, $perPage]));
+        $hit = Cache::get($key);
+        if ($hit !== null) {
+            return $hit;
+        }
+        $data = $this->catalogFresh($q, $genreId, $sort, $page, $perPage);
+        Cache::put($key, $data, 300);
+
+        return $data;
+    }
+
+    private function catalogFresh(string $q, ?int $genreId, string $sort, int $page, int $perPage): array
     {
         $where  = $this->filters($q, $genreId);
         $prefix = $this->sparql->prefixes();
@@ -151,7 +165,23 @@ class MovieRepository
      * Seluruh data satu film untuk halaman detail, atau null bila tidak ada di Fuseki.
      * Slug dipetakan ke film lewat schema:url (nilai ini ditulis oleh pipeline/04_build_rdf.py).
      */
-    public function detail(string $slug): ?array
+        public function detail(string $slug): ?array
+    {
+        // Cache 10 menit: halaman film menjalankan 4-5 query SPARQL berurutan. Hasil kosong (null) tidak disimpan.
+        $key = 'cinelog.detail.v1.' . $slug;
+        $hit = Cache::get($key);
+        if ($hit !== null) {
+            return $hit;
+        }
+        $data = $this->detailFresh($slug);
+        if ($data !== null) {
+            Cache::put($key, $data, 600);
+        }
+
+        return $data;
+    }
+
+    private function detailFresh(string $slug): ?array
     {
         $url    = $this->sparql->filmUrl($slug);
         $u      = $this->sparql->iri($url);
@@ -263,7 +293,6 @@ class MovieRepository
             ], $cast),
         ];
     }
-
     /** Pola graf untuk katalog: judul/alt-judul mengandung kata kunci, dan (opsional) genre tertentu. */
     private function filters(string $q, ?int $genreId): string
     {
