@@ -66,6 +66,7 @@ def build_graph(base: str) -> tuple[Graph, Counter]:
     movies, genres = read_csv("movies.csv"), read_csv("genres.csv")
     movie_genres, people = read_csv("movie_genres.csv"), read_csv("people.csv")
     credits = read_csv("movie_credits.csv")
+    movie_keywords = read_csv("movie_keywords.csv")
 
     g = Graph()
     for prefix, ns in (("cin", CIN), ("schema", SCHEMA), ("owl", OWL), ("rdfs", RDFS), ("skos", SKOS),
@@ -161,6 +162,23 @@ def build_graph(base: str) -> tuple[Graph, Counter]:
         else:
             skipped["relasi_genre_tanpa_induk"] += 1
 
+    # ---- Keyword (tema film) dan Film <-> Keyword ----
+    keyword_seen = set()
+    for r in movie_keywords:
+        if r["movie_tmdb_id"] not in movie_ids:
+            skipped["relasi_keyword_tanpa_induk"] += 1
+            continue
+        kid = r["keyword_tmdb_id"]
+        k = res(base, "keyword", kid)
+        if kid not in keyword_seen:
+            keyword_seen.add(kid)
+            g.add((k, RDF.type, CIN.Keyword))
+            g.add((k, RDF.type, SKOS.Concept))
+            g.add((k, SKOS.prefLabel, Literal(r["keyword"], lang="en")))
+            g.add((k, RDFS.label, Literal(r["keyword"], lang="en")))
+            g.add((k, CIN.tmdbId, Literal(int(kid))))
+        g.add((res(base, "movie", r["movie_tmdb_id"]), CIN.hasKeyword, k))
+
     # ---- Credit: pemeran & kru ----
     for c in credits:
         mid, pid = c["movie_tmdb_id"], c["person_tmdb_id"]
@@ -215,6 +233,7 @@ def main() -> None:
         "film": count_class(CIN.Movie),
         "orang": count_class(CIN.Person),
         "genre": count_class(CIN.Genre),
+        "keyword": count_class(CIN.Keyword),
         "peran_pemeran": count_class(CIN.CastRole),
         "film_tertaut_wikidata": len(set(g.subjects(OWL.sameAs, None))),
         "dilewati": dict(skipped),

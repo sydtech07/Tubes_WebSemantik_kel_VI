@@ -35,6 +35,11 @@ cin:Genre a owl:Class ;
     rdfs:label "Genre"@id , "Genre"@en ;
     rdfs:comment "Kategori film, misalnya Action atau Drama."@id .
 
+cin:Keyword a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Kata kunci"@id , "Keyword"@en ;
+    rdfs:comment "Tema atau topik film, misalnya zombie atau based on video game."@id .
+
 cin:CastRole a owl:Class ;
     rdfs:label "Peran pemeran"@id , "Cast role"@en ;
     rdfs:comment "Hubungan antara satu film, satu aktor, dan nama karakter yang diperankan beserta urutan tampil."@id .
@@ -44,6 +49,11 @@ cin:hasCastRole a owl:ObjectProperty ;
     rdfs:label "memiliki peran pemeran"@id ;
     rdfs:domain cin:Movie ;
     rdfs:range cin:CastRole .
+
+cin:hasKeyword a owl:ObjectProperty ;
+    rdfs:label "memiliki kata kunci"@id ;
+    rdfs:domain cin:Movie ;
+    rdfs:range cin:Keyword .
 
 cin:byActor a owl:ObjectProperty ;
     rdfs:label "diperankan oleh"@id ;

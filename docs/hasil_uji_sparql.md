@@ -7,7 +7,7 @@
 | 1 | Hitung seluruh film | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie }` | 500 | 500 | Valid |
 | 2 | Hitung seluruh genre | `SELECT (COUNT(DISTINCT ?g) AS ?n) WHERE { ?g a cin:Genre }` | 19 | 19 | Valid |
 | 3 | Tampilkan film bergenre "Drama" (genre paling banyak) | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label "Drama"@en }` | 174 | 174 | Valid |
-| 4 | Distribusi jumlah film untuk SEMUA genre | `SELECT ?genre (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label ?genre } GROUP BY ?genre` | {'Action': 129, 'Science Fiction': 53, 'Adventure': 55, 'Horror': 84, 'Thriller': 155, 'Fantasy': 36, 'Comedy': 155, 'Mystery': 38, 'Drama': 174, 'Animation': 4 | 19 baris hasil | Valid |
+| 4 | Distribusi jumlah film untuk SEMUA genre | `SELECT ?genre (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label ?genre } GROUP BY ?genre` | {'Adventure': 55, 'Science Fiction': 53, 'Action': 129, 'Horror': 84, 'Thriller': 155, 'Fantasy': 36, 'Comedy': 155, 'Mystery': 38, 'Drama': 174, 'Animation': 4 | 19 baris hasil | Valid |
 | 5 | Distribusi jumlah film untuk SEMUA bulan rilis | `SELECT ?bulan (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:datePublished ?d } GROUP BY (SUBSTR(STR(?d), 1, 7) AS ?bulan)` | {'2026-07': 58, '2026-09': 58, '2026-08': 52, '2026-05': 57, '2026-06': 50, '2026-03': 53, '2026-04': 60, '2026-01': 45, '2026-02': 67} | 9 baris hasil | Valid |
 | 6 | Tampilkan film yang rilis pada bulan 2026-02 | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:datePublished ?d . FILTER(?d >= "2026-02-01"^^xsd:date && ?d <= "2026-02-28"^^xsd:date) }` | 67 | 67 | Valid |
 | 7 | Tampilkan film berdurasi lebih dari 150 menit | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m cin:runtimeMinutes ?r . FILTER(?r > 150) }` | 31 | 31 | Valid |
@@ -27,5 +27,5 @@
 | 1 | Infrastruktur | Menjalankan web server (ping) | Berhasil |  |
 | 2 | Operasi triple store | Penambahan triple | Berhasil |  |
 | 3 | Operasi triple store | Penghapusan triple | Berhasil |  |
-| 4 | Operasi query | Melakukan query (hitung seluruh triple) | Berhasil | 123591 triple |
-| 5 | Validasi query | Jumlah triple di Fuseki = jumlah triple berkas lokal | Berhasil | Fuseki 123591 vs lokal 123591 |
+| 4 | Operasi query | Melakukan query (hitung seluruh triple) | Berhasil | 139249 triple |
+| 5 | Validasi query | Jumlah triple di Fuseki = jumlah triple berkas lokal | Berhasil | Fuseki 139249 vs lokal 139249 |

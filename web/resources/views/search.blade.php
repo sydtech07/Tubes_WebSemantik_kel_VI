@@ -88,6 +88,8 @@
         </div>
     @endif
 
+    @include('partials.theme-results')
+
     @if (! empty($result['films']))
         <h2 class="h5 mt-4 mb-3">Film</h2>
         <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3 g-md-4">
@@ -99,9 +101,13 @@
 
     @if (! empty($result['queries']))
         <details class="mt-5">
-            <summary class="text-muted small">Lihat query SPARQL yang dijalankan ke Fuseki</summary>
+            <summary class="text-muted small">Lihat query SPARQL yang dijalankan ke Fuseki
+                @if (! empty($result['timings']))
+                    (waktu: {{ implode(', ', array_map(fn ($k, $v) => $k . ' ' . $v . ' ms', array_keys($result['timings']), $result['timings'])) }})
+                @endif
+            </summary>
             @foreach ($result['queries'] as $nama => $query)
-                <p class="small mb-1 mt-3"><strong>{{ $nama }}</strong></p>
+                <p class="small mb-1 mt-3"><strong>{{ $nama }}</strong>@if (isset($result['timings'][$nama])) <span class="text-muted">: {{ $result['timings'][$nama] }} ms</span>@endif</p>
                 <pre class="cl-panel small" style="white-space: pre-wrap">{{ $query }}</pre>
             @endforeach
         </details>

@@ -4,45 +4,68 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use App\Services\GraphSearch;
+use App\Services\ThemeSearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
 
 class SearchController extends Controller
 {
-    /** Halaman hasil: film, orang (aktor/sutradara/penulis/komposer), karakter, dan genre dalam satu pencarian. */
-    public function index(Request $request, GraphSearch $search)
+    /** Halaman hasil: film, orang (aktor/sutradara/penulis/komposer), karakter, genre, dan film bertema dalam satu pencarian. */
+    public function index(Request $request, GraphSearch $search, ThemeSearch $themes)
     {
         $q = Str::limit($request->string('q')->trim()->toString(), 100, '');
-        $result = ['terms' => [], 'films' => [], 'people' => [], 'characters' => [], 'genres' => [], 'queries' => [], 'failed' => []];
+        $result = ['terms' => [], 'films' => [], 'people' => [], 'characters' => [], 'genres' => [], 'queries' => [], 'failed' => [], 'timings' => []];
+        $theme = ['concepts' => [], 'films' => [], 'queries' => [], 'failed' => [], 'timings' => []];
         $maksud = [];
         $error = null;
 
         if (mb_strlen($q) >= 2) {
             try {
                 $result = $search->search($q);
-                if ($this->kosong($result) && $result['failed'] === []) {
-                    $maksud = $search->didYouMean($q);
-                }
             } catch (Throwable $e) {
                 report($e);   // detail teknis hanya ke log, bukan ke pengunjung
                 $error = 'Maaf, pencarian sedang tidak dapat diproses. Coba lagi beberapa saat lagi.';
             }
 
-            // Semua query gagal dan tidak ada hasil: itu masalah server, bukan "tidak ditemukan".
-            if ($error === null && $this->kosong($result) && count($result['failed']) >= 4) {
+            // Semua query utama gagal dan tidak ada hasil: itu masalah server, bukan "tidak ditemukan".
+            $gagalUtama = count($result['failed'] ?? []);
+
+            if ($error === null) {
+                try {
+                    $theme = $themes->search($q);
+                    // Film yang sudah tampil di bagian "Film" (cocok judul) tidak diulang di bagian tema.
+                    $sudahAda = array_column($result['films'] ?? [], 'slug');
+                    $theme['films'] = array_values(array_filter($theme['films'], fn (array $f) => ! in_array($f['slug'], $sudahAda, true)));
+                    $result['queries'] = ($result['queries'] ?? []) + ($theme['queries'] ?? []);
+                    $result['timings'] = ($result['timings'] ?? []) + ($theme['timings'] ?? []);
+                    $result['failed'] = array_merge($result['failed'] ?? [], $theme['failed'] ?? []);
+                } catch (Throwable $e) {
+                    report($e);   // pencarian tema gagal tidak boleh merusak hasil lainnya
+                }
+            }
+
+            if ($error === null && $this->kosong($result, $theme) && $result['failed'] === []) {
+                try {
+                    $maksud = $search->didYouMean($q);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+            }
+
+            if ($error === null && $this->kosong($result, $theme) && $gagalUtama >= 4) {
                 $error = 'Maaf, server data sedang lambat sehingga pencarian belum bisa diselesaikan. Coba lagi beberapa saat lagi.';
             }
         }
 
-        $slugs = array_column($result['films'], 'slug');
+        $slugs = array_merge(array_column($result['films'], 'slug'), array_column($theme['films'], 'slug'));
         $ratings = $slugs === []
             ? collect()
             : Movie::whereIn('slug', $slugs)->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
 
         return view('search', [
-            'q' => $q, 'result' => $result, 'ratings' => $ratings, 'maksud' => $maksud,
-            'kosong' => mb_strlen($q) >= 2 && $error === null && $result['failed'] === [] && $this->kosong($result), 'error' => $error,
+            'q' => $q, 'result' => $result, 'theme' => $theme, 'ratings' => $ratings, 'maksud' => $maksud,
+            'kosong' => mb_strlen($q) >= 2 && $error === null && $result['failed'] === [] && $this->kosong($result, $theme), 'error' => $error,
         ]);
     }
 
@@ -69,8 +92,8 @@ class SearchController extends Controller
         return response()->json($items)->header('Cache-Control', 'private, max-age=60');
     }
 
-    private function kosong(array $r): bool
+    private function kosong(array $r, array $theme): bool
     {
-        return ! ($r['films'] || $r['people'] || $r['characters'] || $r['genres']);
+        return ! ($r['films'] || $r['people'] || $r['characters'] || $r['genres'] || $theme['films']);
     }
 }

@@ -1,7 +1,7 @@
 """Langkah 2 - Bersihkan & validasi data mentah, hasilkan CSV siap impor.
 
 Masukan : data/raw/movie_*.json
-Keluaran: data/clean/movies.csv, genres.csv, movie_genres.csv, people.csv, movie_credits.csv, report.json
+Keluaran: data/clean/movies.csv, genres.csv, movie_genres.csv, movie_keywords.csv, people.csv, movie_credits.csv, report.json
 
 Aturan kelayakan sebuah film (yang tidak lolos dicatat di report.json beserta alasannya):
   - tanggal rilis ada dan berada di rentang --start .. --end
@@ -142,12 +142,15 @@ def main() -> None:
     passed = passed[: args.max]
 
     movies, genres, movie_genres = [], {}, []
+    movie_keywords = []
     people, credits = {}, {}
     for raw, row in passed:
         movies.append(row)
         for g in raw["genres"]:
             genres[g["id"]] = clean_text(g["name"])
             movie_genres.append({"movie_tmdb_id": raw["id"], "genre_tmdb_id": g["id"]})
+        for k in ((raw.get("keywords") or {}).get("keywords") or []):
+            movie_keywords.append({"movie_tmdb_id": raw["id"], "keyword_tmdb_id": k["id"], "keyword": clean_text(k["name"])})
 
         for c in (raw.get("credits") or {}).get("cast", []):
             if c.get("order", 999) >= MAX_CAST:
@@ -176,6 +179,7 @@ def main() -> None:
     write_csv("movies.csv", MOVIE_COLS, movies)
     write_csv("genres.csv", ["tmdb_id", "name"], [{"tmdb_id": k, "name": v} for k, v in sorted(genres.items())])
     write_csv("movie_genres.csv", ["movie_tmdb_id", "genre_tmdb_id"], movie_genres)
+    write_csv("movie_keywords.csv", ["movie_tmdb_id", "keyword_tmdb_id", "keyword"], movie_keywords)
     write_csv("people.csv", ["tmdb_id", "name", "gender", "known_for_department", "profile_path"], people_rows)
     write_csv("movie_credits.csv",
               ["movie_tmdb_id", "person_tmdb_id", "credit_type", "role", "department", "billing_order"],

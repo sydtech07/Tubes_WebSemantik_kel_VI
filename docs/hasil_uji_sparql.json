@@ -28,7 +28,7 @@
       "no": 4,
       "uji_kasus": "Distribusi jumlah film untuk SEMUA genre",
       "query": "SELECT ?genre (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g . ?g rdfs:label ?genre } GROUP BY ?genre",
-      "diharapkan": "{'Action': 129, 'Science Fiction': 53, 'Adventure': 55, 'Horror': 84, 'Thriller': 155, 'Fantasy': 36, 'Comedy': 155, 'Mystery': 38, 'Drama': 174, 'Animation': 4",
+      "diharapkan": "{'Adventure': 55, 'Science Fiction': 53, 'Action': 129, 'Horror': 84, 'Thriller': 155, 'Fantasy': 36, 'Comedy': 155, 'Mystery': 38, 'Drama': 174, 'Animation': 4",
       "aktual": "19 baris hasil",
       "valid": true
     },
@@ -144,13 +144,13 @@
       "aspect": "Operasi query",
       "test": "Melakukan query (hitung seluruh triple)",
       "status": "Berhasil",
-      "detail": "123591 triple"
+      "detail": "139249 triple"
     },
     {
       "aspect": "Validasi query",
       "test": "Jumlah triple di Fuseki = jumlah triple berkas lokal",
       "status": "Berhasil",
-      "detail": "Fuseki 123591 vs lokal 123591"
+      "detail": "Fuseki 139249 vs lokal 139249"
     }
   ]
 }
