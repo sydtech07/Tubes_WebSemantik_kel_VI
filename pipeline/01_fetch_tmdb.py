@@ -68,8 +68,7 @@ def save_json(path, payload) -> None:
 
 
 def fetch_details(client: TmdbClient, movie_id: int, with_id: bool) -> dict | None:
-    detail = client.get(f"movie/{movie_id}", append_to_response="credits,external_ids", language="en-US")
-    if detail is None:
+    detail = client.get(f"movie/{movie_id}", append_to_response="credits,external_ids,keywords", language="en-US")    if detail is None:
         return None
     if with_id:
         tr = client.get(f"movie/{movie_id}", language="id-ID") or {}
