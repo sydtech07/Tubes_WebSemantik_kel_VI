@@ -43,7 +43,7 @@ class HomeController extends Controller
         $slugs   = array_column($result['items'], 'slug');
         $ratings = $slugs === []
             ? collect()
-            : Movie::whereIn('slug', $slugs)->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
+            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
 
         $paginator = new LengthAwarePaginator($result['items'], $result['total'], $size, $page, [
             'path'  => $request->url(),

@@ -1,0 +1,37 @@
+{
+ "films_dicek": 500,
+ "films_punya_ulasan": 277,
+ "cakupan_persen": 55.4,
+ "total_ulasan": 905,
+ "ulasan_dengan_rating": 813,
+ "rata2_ulasan_per_film_yang_punya": 3.27,
+ "sebaran_jumlah_ulasan_per_film": {
+  "0": 223,
+  "1": 123,
+  "2-3": 76,
+  "4-9": 60,
+  "10+": 18
+ },
+ "film_terbanyak_ulasan": [
+  {
+   "tmdb_id": 1368337,
+   "ulasan": 28
+  },
+  {
+   "tmdb_id": 687163,
+   "ulasan": 28
+  },
+  {
+   "tmdb_id": 1083381,
+   "ulasan": 22
+  },
+  {
+   "tmdb_id": 969681,
+   "ulasan": 19
+  },
+  {
+   "tmdb_id": 1275779,
+   "ulasan": 16
+  }
+ ]
+}

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
@@ -75,7 +76,54 @@ class SparqlClient
      */
     public function select(string $query): array
     {
-        $json = $this->post($query, 'application/sparql-results+json')->json() ?? [];
+        return $this->rows($this->post($query, 'application/sparql-results+json')->json() ?? []);
+    }
+
+    /**
+     * Beberapa SELECT yang tidak saling bergantung dikirim BERSAMAAN (satu gelombang HTTP).
+     * Waktu tunggu = query paling lambat, bukan jumlah semua query.
+     *
+     * @param  array<string, string>  $queries  [nama => teks query]
+     * @return array<string, array>             [nama => baris-baris hasil], urutan kunci sama dengan masukan
+     */
+    public function selectMany(array $queries): array
+    {
+        $responses = Http::pool(function (Pool $pool) use ($queries) {
+            $requests = [];
+            foreach ($queries as $name => $query) {
+                $requests[] = $pool->as((string) $name)
+                    ->asForm()
+                    ->withHeaders([
+                        'Accept'     => 'application/sparql-results+json',
+                        'User-Agent' => 'CinelogStudentProject/0.1 (tugas besar Web Semantik & MSBD)',
+                    ])
+                    ->timeout(30)
+                    ->post($this->dataset . '/sparql', ['query' => $query]);
+            }
+
+            return $requests;
+        });
+
+        $out = [];
+        foreach ($queries as $name => $_) {
+            $response = $responses[(string) $name] ?? null;
+            if (! $response instanceof Response) {
+                throw new RuntimeException('Fuseki tidak dapat dihubungi untuk query "' . $name . '".');
+            }
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'Fuseki menjawab HTTP ' . $response->status() . ': ' . mb_substr($response->body(), 0, 300)
+                );
+            }
+            $out[$name] = $this->rows($response->json() ?? []);
+        }
+
+        return $out;
+    }
+
+    /** Hasil JSON SPARQL -> array baris [variabel => nilai string]. */
+    private function rows(array $json): array
+    {
         $rows = [];
         foreach ($json['results']['bindings'] ?? [] as $binding) {
             $row = [];

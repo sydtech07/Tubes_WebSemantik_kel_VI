@@ -175,7 +175,7 @@ class MovieRepository
         }
         $data = $this->detailFresh($slug);
         if ($data !== null) {
-            Cache::put($key, $data, 600);
+            Cache::put($key, $data, 21600);   // 6 jam; data film statis. Hangatkan lebih dulu dengan: php artisan cinelog:warm
         }
 
         return $data;
@@ -210,11 +210,6 @@ class MovieRepository
         LIMIT 1
         SPARQL;
 
-        $main = $this->sparql->select($prefix . $mainQuery)[0] ?? null;
-        if ($main === null) {
-            return null;
-        }
-
         $genreQuery = <<<SPARQL
         SELECT ?g ?label WHERE {
           ?m schema:url {$u} ; schema:genre ?g .
@@ -247,9 +242,21 @@ class MovieRepository
         LIMIT 30
         SPARQL;
 
-        $genres = $this->sparql->select($prefix . $genreQuery);
-        $crew   = $this->sparql->select($prefix . $crewQuery);
-        $cast   = $this->sparql->select($prefix . $castQuery);
+        // Keempat query tidak saling bergantung (semuanya hanya butuh IRI film), jadi dikirim bersamaan.
+        $res = $this->sparql->selectMany([
+            'main'   => $prefix . $mainQuery,
+            'genres' => $prefix . $genreQuery,
+            'crew'   => $prefix . $crewQuery,
+            'cast'   => $prefix . $castQuery,
+        ]);
+
+        $main = $res['main'][0] ?? null;
+        if ($main === null) {
+            return null;
+        }
+        $genres = $res['genres'];
+        $crew   = $res['crew'];
+        $cast   = $res['cast'];
 
         $person = fn (array $r) => ['iri' => $r['p'], 'name' => $r['name']];
         $byRole = fn (string $role) => array_values(

@@ -54,6 +54,11 @@ class Movie extends Model
         return $this->hasMany(Review::class, 'movie_id');
     }
 
+    public function externalReviews(): HasMany
+    {
+        return $this->hasMany(ExternalReview::class, 'movie_id');
+    }
+
     /** URL poster ukuran sedang, atau null jika film tidak punya poster. */
     public function getPosterUrlAttribute(): ?string
     {

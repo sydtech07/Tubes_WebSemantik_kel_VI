@@ -5,6 +5,10 @@
 
 {{-- ===== Open Graph (tipe video.movie) + Twitter Card. Prefix og: dan video: dideklarasikan di <head> layout. ===== --}}
 @push('head')
+    <link rel="preconnect" href="https://image.tmdb.org">
+    @if ($film['backdrop'])
+        <link rel="preload" as="image" href="{{ $film['backdrop'] }}" fetchpriority="high">
+    @endif
     <meta property="og:type" content="video.movie">
     <meta property="og:site_name" content="CINÉLOG">
     <meta property="og:locale" content="id_ID">
@@ -111,8 +115,12 @@
                                 <span property="ratingValue">{{ number_format($movie->avg_rating, 2) }}</span>
                                 <small>/ <span property="bestRating">10</span> · <span property="reviewCount">{{ $movie->reviews_count }}</span> ulasan</small>
                             </p>
+                        @elseif ($externalReviewsCount > 0)
+                            <a href="#ulasan" class="cl-sub small text-decoration-none">
+                                <i class="bi bi-chat-quote-fill"></i> {{ $externalReviewsCount }} ulasan TMDB
+                            </a>
                         @else
-                            <span class="cl-sub small"><i class="bi bi-chat-square-text"></i> Belum ada ulasan pengguna.</span>
+                            <span class="cl-sub small"><i class="bi bi-chat-square-text"></i> Belum ada ulasan.</span>
                         @endif
                     </div>
 
@@ -156,7 +164,7 @@
                     </div>
                 @endif
 
-                {{-- 2B-3: form rating + ulasan dan daftar ulasan ditempatkan di sini --}}
+                {!! $reviewsHtml !!}
             </div>
 
             {{-- ===== Kolom samping: informasi dan tautan ===== --}}

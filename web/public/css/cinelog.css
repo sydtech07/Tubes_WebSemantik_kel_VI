@@ -182,3 +182,46 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
     .cl-col, .cl-poster { animation: none; }
     .cl-card, .cl-card:hover, .cl-poster img, .cl-card:hover .cl-poster img { transition: none; transform: none; }
 }
+
+/* ---------- Ulasan TMDB di halaman film ---------- */
+.cl-tone-pos { --tone: #2ecc71; } .cl-tone-neu { --tone: #ffc83d; } .cl-tone-neg { --tone: #ff4d4d; } .cl-tone-none { --tone: #98a2b8; }
+
+.cl-rv-summary { display: flex; flex-wrap: wrap; gap: 1.25rem 2rem; align-items: center; padding: 1rem 1.15rem; margin-bottom: 1rem; background: rgba(255, 255, 255, .035); border: 1px solid var(--cl-line); border-radius: 14px; }
+.cl-rv-avg { display: flex; align-items: center; gap: .85rem; line-height: 1.25; }
+.cl-rv-avg-num { font-family: var(--cl-font-head); font-weight: 800; font-size: 2.6rem; line-height: 1; }
+.cl-rv-dist { flex: 1 1 220px; display: grid; gap: .4rem; min-width: 200px; }
+.cl-rv-dist-row { display: grid; grid-template-columns: 4rem 1fr 1.6rem; align-items: center; gap: .6rem; font-size: .8rem; color: var(--cl-muted); }
+.cl-rv-bar { height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .09); overflow: hidden; }
+.cl-rv-bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--tone); }
+.cl-rv-dist-n { text-align: right; }
+
+.cl-rv-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: 1rem; }
+.cl-rv-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.cl-rv-chip { background: rgba(255, 255, 255, .05); border: 1px solid var(--cl-line); color: var(--cl-text); border-radius: 999px; padding: .28rem .8rem; font-size: .82rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.cl-rv-chip span { color: var(--cl-muted); margin-left: .2rem; }
+.cl-rv-chip:hover { background: rgba(255, 255, 255, .1); }
+.cl-rv-chip.is-active { background: var(--cl-grad); border-color: transparent; color: #fff; }
+.cl-rv-chip.is-active span { color: rgba(255, 255, 255, .85); }
+.cl-rv-sort .form-select { background-color: rgba(255, 255, 255, .05); border-color: var(--cl-line); color: var(--cl-text); border-radius: 999px; padding-left: .9rem; min-width: 10.5rem; }
+
+.cl-rv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: .9rem; align-items: start; }
+.cl-rv { display: flex; flex-direction: column; gap: .6rem; padding: 1rem; background: rgba(255, 255, 255, .035); border: 1px solid var(--cl-line); border-left: 3px solid var(--tone, var(--cl-line)); border-radius: 14px; transition: background .15s, transform .15s; }
+.cl-rv:hover { background: rgba(255, 255, 255, .06); }
+.cl-rv[hidden] { display: none; }
+.cl-rv-head { display: flex; align-items: center; gap: .65rem; }
+.cl-rv-avatar { flex: none; width: 2.1rem; height: 2.1rem; border-radius: 50%; display: grid; place-items: center; background: var(--cl-grad); color: #fff; font-weight: 700; font-size: .95rem; }
+.cl-rv-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.cl-rv-who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-rv-pill { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .6rem; border-radius: 999px; font-weight: 600; font-size: .8rem; color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent); }
+.cl-rv-text { margin: 0; font-size: .9rem; line-height: 1.55; color: #cfd5e3; display: -webkit-box; -webkit-line-clamp: 6; line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cl-rv-open { align-self: flex-start; background: none; border: 0; padding: 0; color: #ff8a00; font-size: .85rem; font-weight: 500; cursor: pointer; }
+.cl-rv-open:hover { text-decoration: underline; }
+
+.cl-rv-modal { background: var(--cl-surface); border: 1px solid var(--cl-line); border-radius: var(--cl-radius); }
+.cl-rv-modal .modal-header, .cl-rv-modal .modal-footer { border-color: var(--cl-line); }
+.cl-rv-md { line-height: 1.7; overflow-wrap: anywhere; }
+.cl-rv-md p { margin-bottom: .9rem; }
+.cl-rv-md p:last-child { margin-bottom: 0; }
+.cl-rv-md h1, .cl-rv-md h2, .cl-rv-md h3, .cl-rv-md h4 { font-size: 1.05rem; margin: 1.1rem 0 .5rem; }
+.cl-rv-md blockquote { border-left: 3px solid var(--cl-line); padding-left: .9rem; color: var(--cl-muted); }
+@media (max-width: 575.98px) { .cl-rv-grid { grid-template-columns: 1fr; } .cl-rv-sort .form-select { min-width: 0; } }

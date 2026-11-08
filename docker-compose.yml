@@ -91,6 +91,9 @@ services:
       PHP_CLI_SERVER_WORKERS: "4"
     volumes:
       - ./web:/var/www/html
+      # vendor (8.900+ file) disimpan di volume Docker, bukan di drive Windows: bind mount Windows sangat lambat untuk banyak file kecil.
+      # Isi volume ini lewat: docker compose exec app composer install --optimize-autoloader
+      - app_vendor:/var/www/html/vendor
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -102,3 +105,4 @@ volumes:
   mariadb_data:
   fuseki_data:
   mongo_data:
+  app_vendor:
