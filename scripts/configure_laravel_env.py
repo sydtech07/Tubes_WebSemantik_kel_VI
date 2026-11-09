@@ -91,6 +91,8 @@ def main() -> None:
         "FUSEKI_URL": "http://fuseki:3030/cinelog",
         "CINELOG_BASE_URI": "http://localhost:8000/",
     }
+    if "GEMINI_API_KEY" in src:
+        settings["GEMINI_API_KEY"] = src["GEMINI_API_KEY"]
 
     lines = web_env.read_text(encoding="utf-8").splitlines()
     for key, value in settings.items():
@@ -99,7 +101,7 @@ def main() -> None:
 
     print(f"web/.env diperbarui ({len(settings)} pengaturan). Password tidak ditampilkan.")
     for key, value in settings.items():
-        shown = "********" if key == "DB_PASSWORD" else value
+        shown = "********" if key in {"DB_PASSWORD", "GEMINI_API_KEY"} else value
         print(f"  {key}={shown}")
 
 

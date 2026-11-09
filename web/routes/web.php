@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\FilmController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ResourceController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\StatusController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PersonController;
-use App\Http\Controllers\SearchController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/film/{movie}', [FilmController::class, 'show'])->name('film.show');   // {movie} dicari lewat kolom slug
@@ -22,3 +23,7 @@ Route::get('/resource/genre/{genreId}', [ResourceController::class, 'genre'])->w
 
 Route::get('/status', StatusController::class)->name('status');
 
+// Route Chatbot
+Route::post('/chatbot/send', [ChatbotController::class, 'handleChat'])
+    ->middleware('throttle:10,1')
+    ->name('chatbot.send');

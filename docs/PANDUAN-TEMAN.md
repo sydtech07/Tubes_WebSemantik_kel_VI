@@ -54,10 +54,13 @@ pipeline\.venv\Scripts\Activate.ps1
 python -m pip install -r pipeline\requirements.txt
 python pipeline\03_import_mysql.py
 python pipeline\05_load_fuseki.py
+Get-Content -Raw database\sql\patch_external_reviews.sql | docker compose exec -T mariadb sh -c 'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"'
+pipeline\.venv\Scripts\python.exe pipeline\08_import_reviews.py
 ```
 - Jika `Activate.ps1` ditolak ("running scripts is disabled"): `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, jawab `Y`, ulangi.
 - Prompt PowerShell berawalan `(.venv)` jika venv aktif.
 - **Harus terlihat** (impor): jumlah film 500 tanpa error. **Harus terlihat** (Fuseki): `Verifikasi berhasil: jumlah triple cocok.`
+- Patch tabel ulasan luar aman dijalankan berulang; pengimpor ulasan membaca `data\clean\external_reviews.csv` dan memakai kredensial database dari `pipeline\.env`.
 
 Data RDF (`data\rdf\cinelog-data.ttl`) sudah ada di repo, jadi langkah `04_build_rdf.py` tidak perlu diulang kecuali data CSV berubah.
 
@@ -73,6 +76,7 @@ docker compose --profile app up -d app
 ```
 Buka http://localhost:8000/status : dua kotak **TERHUBUNG** (MariaDB: film 500; Fuseki: film di RDF 500). Lalu buka http://localhost:8000/ untuk katalog.
 Build pertama 5 sampai 10 menit. Selesai: kamu punya proyek yang sama persis dengan pemilik repo.
+Jika `GEMINI_API_KEY` tersedia di `.env` root, skrip konfigurasi menyalinnya ke `web\.env` (tanpa menampilkan nilainya); kunci ini hanya diperlukan untuk mengaktifkan chatbot.
 
 > Tiap orang punya database **sendiri di komputernya**. Akun dan review yang kamu buat di komputermu tidak muncul di komputer teman.
 > Itu normal untuk pengembangan; kita menyatukannya nanti saat demo di satu komputer.

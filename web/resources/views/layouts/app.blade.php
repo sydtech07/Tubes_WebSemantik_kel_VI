@@ -128,5 +128,89 @@
     document.addEventListener('click', function (e) { if (!input.form.contains(e.target)) close(); });
 })();
 </script>
+<!-- Widget Chatbot CINÉLOG -->
+<div id="chat-widget" style="position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: sans-serif;">
+    <!-- Tombol Pembuka Chat -->
+    <button id="toggle-chat" style="background-color: #0d6efd; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+        💬 <span>Tanya CINÉLOG</span>
+    </button>
+
+    <!-- Kotak Chatbot -->
+    <div id="chat-box" style="display: none; width: 340px; height: 450px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; position: absolute; bottom: 60px; right: 0;">
+        <!-- Header Chat -->
+        <div style="background-color: #0d6efd; color: white; padding: 12px 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+            <span>🤖 CINÉLOG Bot</span>
+            <button id="close-chat" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+
+        <!-- Area Pesan -->
+        <div id="chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; background-color: #f8f9fa; display: flex; flex-direction: column; gap: 10px;">
+            <div style="background-color: #e9ecef; color: #212529; padding: 8px 12px; border-radius: 10px; max-width: 80%; align-self: flex-start; font-size: 14px;">
+                Halo! Mau cari rekomendasi atau info film apa hari ini?
+            </div>
+        </div>
+
+        <!-- Input Pesan -->
+        <form id="chat-form" style="display: flex; padding: 10px; background-color: #ffffff; border-top: 1px solid #dee2e6;">
+            <input type="text" id="user-input" placeholder="Ketik judul film..." autocomplete="off" style="flex: 1; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 20px; outline: none; font-size: 14px;">
+            <button type="submit" style="background-color: #0d6efd; color: white; border: none; padding: 8px 15px; margin-left: 8px; border-radius: 20px; cursor: pointer; font-size: 14px;">Kirim</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const toggleBtn = document.getElementById('toggle-chat');
+    const closeBtn = document.getElementById('close-chat');
+    const chatBox = document.getElementById('chat-box');
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    // Buka/Tutup Widget
+    toggleBtn.addEventListener('click', () => chatBox.style.display = 'flex');
+    closeBtn.addEventListener('click', () => chatBox.style.display = 'none');
+
+    // Kirim Pesan ke Backend Laravel
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        const userBubble = document.createElement('div');
+        userBubble.style.cssText = 'background-color:#0d6efd;color:white;padding:8px 12px;border-radius:10px;max-width:80%;align-self:flex-end;font-size:14px;white-space:pre-wrap;';
+        userBubble.textContent = text;
+        chatMessages.appendChild(userBubble);
+        userInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            // Panggil API Controller Chatbot yang sudah dibuat
+            const response = await fetch('/chatbot/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            if (!response.ok || typeof data.reply !== 'string') {
+                throw new Error('Chatbot request failed.');
+            }
+            const replyBubble = document.createElement('div');
+            replyBubble.style.cssText = 'background-color:#e9ecef;color:#212529;padding:8px 12px;border-radius:10px;max-width:80%;align-self:flex-start;font-size:14px;white-space:pre-wrap;';
+            replyBubble.textContent = data.reply;
+            chatMessages.appendChild(replyBubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (error) {
+            chatMessages.innerHTML += `
+                <div style="background-color: #f8d7da; color: #842029; padding: 8px 12px; border-radius: 10px; max-width: 80%; align-self: flex-start; font-size: 14px;">
+                    Terjadi kesalahan koneksi ke server.
+                </div>
+            `;
+        }
+    });
+</script>
 </body>
 </html>
