@@ -16,7 +16,8 @@ class ChatbotService
             return 'Chatbot belum dikonfigurasi. Tambahkan GEMINI_API_KEY ke file .env.';
         }
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+        $model = config('services.gemini.model');
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
         try {
             $response = Http::withHeaders(['x-goog-api-key' => $apiKey])
