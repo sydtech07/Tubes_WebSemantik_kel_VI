@@ -28,7 +28,6 @@
         a.cl-cast-name:hover, dd a:hover { text-decoration: underline; }
     </style>
     @stack('head')
-    @stack('head')
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-dark cl-navbar sticky-top">
@@ -47,7 +46,7 @@
                     <a class="nav-link {{ request()->routeIs('home', 'film.show', 'search', 'person.show') ? 'active' : '' }}" href="{{ route('home') }}">Katalog</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('status') ? 'active' : '' }}" href="{{ route('status') }}">Status</a>
+                    <a class="nav-link {{ request()->routeIs('cinemas') ? 'active' : '' }}" href="{{ route('cinemas') }}">Bioskop</a>
                 </li>
             </ul>
                        <form class="cl-search position-relative" role="search" action="{{ route('search') }}" method="get">
@@ -128,89 +127,163 @@
     document.addEventListener('click', function (e) { if (!input.form.contains(e.target)) close(); });
 })();
 </script>
-<!-- Widget Chatbot CINÉLOG -->
-<div id="chat-widget" style="position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: sans-serif;">
-    <!-- Tombol Pembuka Chat -->
-    <button id="toggle-chat" style="background-color: #0d6efd; color: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-weight: bold; display: flex; align-items: center; gap: 8px;">
-        💬 <span>Tanya CINÉLOG</span>
+<!-- Widget Chatbot CINÉLOG (gaya: public/css/cinelog.css, bagian .cl-chat) -->
+<div id="clChat" class="cl-chat" data-endpoint="{{ route('chatbot.send', [], false) }}" data-token="{{ csrf_token() }}">
+    <button id="clChatToggle" class="cl-chat-fab" type="button" aria-expanded="false" aria-controls="clChatPanel">
+        <i class="bi bi-chat-dots-fill" aria-hidden="true"></i><span>Tanya CINÉLOG</span>
     </button>
 
-    <!-- Kotak Chatbot -->
-    <div id="chat-box" style="display: none; width: 340px; height: 450px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; position: absolute; bottom: 60px; right: 0;">
-        <!-- Header Chat -->
-        <div style="background-color: #0d6efd; color: white; padding: 12px 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-            <span>🤖 CINÉLOG Bot</span>
-            <button id="close-chat" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
-        </div>
-
-        <!-- Area Pesan -->
-        <div id="chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; background-color: #f8f9fa; display: flex; flex-direction: column; gap: 10px;">
-            <div style="background-color: #e9ecef; color: #212529; padding: 8px 12px; border-radius: 10px; max-width: 80%; align-self: flex-start; font-size: 14px;">
-                Halo! Mau cari rekomendasi atau info film apa hari ini?
+    <section id="clChatPanel" class="cl-chat-panel" role="dialog" aria-label="Asisten film CINÉLOG" hidden>
+        <header class="cl-chat-head">
+            <span class="cl-chat-avatar" aria-hidden="true"><i class="bi bi-film"></i></span>
+            <div class="cl-chat-title">
+                <strong>CINÉLOG Bot</strong>
+                <small>Asisten film &middot; dibantu AI</small>
             </div>
+            <button type="button" class="cl-chat-icon" id="clChatClear" title="Mulai percakapan baru" aria-label="Mulai percakapan baru"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <button type="button" class="cl-chat-icon" id="clChatClose" aria-label="Tutup chat"><i class="bi bi-x-lg"></i></button>
+        </header>
+
+        <div id="clChatLog" class="cl-chat-log" aria-live="polite"></div>
+
+        <div class="cl-chat-chips" id="clChatChips">
+            <button type="button" class="cl-chat-chip" data-q="Rekomendasikan film action terbaik tahun 2026">Film action</button>
+            <button type="button" class="cl-chat-chip" data-q="Film horor apa yang seru ditonton?">Film horor</button>
+            <button type="button" class="cl-chat-chip" data-q="Rekomendasi film keluarga untuk akhir pekan">Film keluarga</button>
+            <a class="cl-chat-chip is-link" href="{{ route('cinemas') }}"><i class="bi bi-geo-alt-fill"></i> Bioskop di Sumut</a>
         </div>
 
-        <!-- Input Pesan -->
-        <form id="chat-form" style="display: flex; padding: 10px; background-color: #ffffff; border-top: 1px solid #dee2e6;">
-            <input type="text" id="user-input" placeholder="Ketik judul film..." autocomplete="off" style="flex: 1; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 20px; outline: none; font-size: 14px;">
-            <button type="submit" style="background-color: #0d6efd; color: white; border: none; padding: 8px 15px; margin-left: 8px; border-radius: 20px; cursor: pointer; font-size: 14px;">Kirim</button>
+        <form id="clChatForm" class="cl-chat-form" autocomplete="off">
+            <input id="clChatInput" type="text" maxlength="1000" placeholder="Tanya soal film atau minta rekomendasi" aria-label="Pesan untuk chatbot">
+            <button type="submit" class="cl-chat-send" aria-label="Kirim pesan"><i class="bi bi-send-fill"></i></button>
         </form>
-    </div>
+        <p class="cl-chat-note">Jawaban AI bisa keliru. Cek detail film di katalog.</p>
+    </section>
 </div>
 
 <script>
-    const toggleBtn = document.getElementById('toggle-chat');
-    const closeBtn = document.getElementById('close-chat');
-    const chatBox = document.getElementById('chat-box');
-    const chatForm = document.getElementById('chat-form');
-    const userInput = document.getElementById('user-input');
-    const chatMessages = document.getElementById('chat-messages');
+(function () {
+    var root = document.getElementById('clChat');
+    if (!root) return;
+    var panel = document.getElementById('clChatPanel');
+    var toggle = document.getElementById('clChatToggle');
+    var log = document.getElementById('clChatLog');
+    var form = document.getElementById('clChatForm');
+    var input = document.getElementById('clChatInput');
+    var chips = document.getElementById('clChatChips');
+    var KEY = 'cl-chat-v1', KEY_OPEN = 'cl-chat-open';
+    var WELCOME = 'Halo! Saya asisten CINÉLOG. Mau cari rekomendasi atau info film apa hari ini?';
+    var history = [], busy = false;
 
-    // Buka/Tutup Widget
-    toggleBtn.addEventListener('click', () => chatBox.style.display = 'flex');
-    closeBtn.addEventListener('click', () => chatBox.style.display = 'none');
+    function store(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+    function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
 
-    // Kirim Pesan ke Backend Laravel
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = userInput.value.trim();
-        if (!text) return;
+    // ---- format ringan balasan AI (**tebal**, daftar berpoin, paragraf) tanpa innerHTML ----
+    function inline(parent, text) {
+        text.split(/(\*\*[^*]+\*\*)/g).forEach(function (part) {
+            if (/^\*\*[^*]+\*\*$/.test(part)) {
+                var b = document.createElement('strong'); b.textContent = part.slice(2, -2); parent.appendChild(b);
+            } else if (part) {
+                parent.appendChild(document.createTextNode(part.replace(/\*/g, '')));
+            }
+        });
+    }
+    function format(box, text) {
+        var ul = null, p = null;
+        text.split(/\r?\n/).forEach(function (line) {
+            var li = line.match(/^\s*[*\-•]\s+(.*)$/);
+            if (li) {
+                p = null;
+                if (!ul) { ul = document.createElement('ul'); box.appendChild(ul); }
+                var item = document.createElement('li'); inline(item, li[1]); ul.appendChild(item);
+            } else if (line.trim() === '') {
+                ul = null; p = null;
+            } else {
+                ul = null;
+                if (!p) { p = document.createElement('p'); box.appendChild(p); } else { p.appendChild(document.createElement('br')); }
+                inline(p, line.trim());
+            }
+        });
+    }
 
-        const userBubble = document.createElement('div');
-        userBubble.style.cssText = 'background-color:#0d6efd;color:white;padding:8px 12px;border-radius:10px;max-width:80%;align-self:flex-end;font-size:14px;white-space:pre-wrap;';
-        userBubble.textContent = text;
-        chatMessages.appendChild(userBubble);
-        userInput.value = '';
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+    function bubble(role, text) {
+        var d = document.createElement('div');
+        d.className = 'cl-chat-msg is-' + role;
+        if (role === 'bot') format(d, text); else d.textContent = text;
+        log.appendChild(d);
+        log.scrollTop = log.scrollHeight;
+        return d;
+    }
+    function typing() {
+        var d = document.createElement('div');
+        d.className = 'cl-chat-msg is-bot is-typing';
+        d.setAttribute('aria-label', 'Bot sedang mengetik');
+        d.innerHTML = '<span></span><span></span><span></span>';
+        log.appendChild(d); log.scrollTop = log.scrollHeight;
+        return d;
+    }
+    function persist() { store(KEY, JSON.stringify(history.slice(-40))); }
 
+    function restore() {
+        log.textContent = '';
+        try { history = JSON.parse(load(KEY) || '[]') || []; } catch (e) { history = []; }
+        if (!history.length) { bubble('bot', WELCOME); chips.hidden = false; return; }
+        history.forEach(function (m) { bubble(m.role, m.text); });
+        chips.hidden = true;
+    }
+
+    function setOpen(open) {
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        root.classList.toggle('is-open', open);
+        store(KEY_OPEN, open ? '1' : '0');
+        if (open) { log.scrollTop = log.scrollHeight; setTimeout(function () { input.focus(); }, 50); }
+    }
+
+    async function send(text) {
+        if (busy || !text) return;
+        busy = true; input.disabled = true; chips.hidden = true;
+        bubble('user', text); history.push({ role: 'user', text: text }); persist();
+        var wait = typing();
         try {
-            // Panggil API Controller Chatbot yang sudah dibuat
-            const response = await fetch('/chatbot/send', {
+            var res = await fetch(root.dataset.endpoint, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': root.dataset.token },
                 body: JSON.stringify({ message: text })
             });
-
-            const data = await response.json();
-            if (!response.ok || typeof data.reply !== 'string') {
-                throw new Error('Chatbot request failed.');
-            }
-            const replyBubble = document.createElement('div');
-            replyBubble.style.cssText = 'background-color:#e9ecef;color:#212529;padding:8px 12px;border-radius:10px;max-width:80%;align-self:flex-start;font-size:14px;white-space:pre-wrap;';
-            replyBubble.textContent = data.reply;
-            chatMessages.appendChild(replyBubble);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        } catch (error) {
-            chatMessages.innerHTML += `
-                <div style="background-color: #f8d7da; color: #842029; padding: 8px 12px; border-radius: 10px; max-width: 80%; align-self: flex-start; font-size: 14px;">
-                    Terjadi kesalahan koneksi ke server.
-                </div>
-            `;
+            var data = await res.json().catch(function () { return {}; });
+            wait.remove();
+            if (res.status === 429) throw new Error('Terlalu banyak pesan dalam waktu singkat. Tunggu sebentar lalu coba lagi.');
+            if (!res.ok || typeof data.reply !== 'string') throw new Error('Terjadi kesalahan pada server. Coba lagi nanti.');
+            bubble('bot', data.reply); history.push({ role: 'bot', text: data.reply }); persist();
+        } catch (err) {
+            wait.remove();
+            var msg = err && err.message && err.message.indexOf('Failed to fetch') === -1 ? err.message : 'Tidak dapat terhubung ke server.';
+            bubble('error', msg);
+        } finally {
+            busy = false; input.disabled = false; input.focus();
         }
+    }
+
+    toggle.addEventListener('click', function () { setOpen(panel.hidden); });
+    document.getElementById('clChatClose').addEventListener('click', function () { setOpen(false); toggle.focus(); });
+    document.getElementById('clChatClear').addEventListener('click', function () { history = []; persist(); restore(); input.focus(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) { setOpen(false); toggle.focus(); } });
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        send(text);
     });
+    chips.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-q]');
+        if (b) send(b.dataset.q);
+    });
+
+    restore();
+    if (load(KEY_OPEN) === '1') setOpen(true);
+})();
 </script>
 </body>
 </html>

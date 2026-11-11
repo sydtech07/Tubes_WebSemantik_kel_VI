@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\CinemaController;
 use App\Http\Controllers\FilmController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\StatusController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -21,7 +21,8 @@ Route::get('/resource/movie/{tmdbId}', [ResourceController::class, 'movie'])->wh
 Route::get('/resource/person/{personId}', [ResourceController::class, 'person'])->whereNumber('personId')->name('resource.person');
 Route::get('/resource/genre/{genreId}', [ResourceController::class, 'genre'])->whereNumber('genreId')->name('resource.genre');
 
-Route::get('/status', StatusController::class)->name('status');
+// Peta + daftar bioskop Medan / Sumatera Utara
+Route::get('/bioskop', [CinemaController::class, 'index'])->name('cinemas');
 
 // Route Chatbot
 Route::post('/chatbot/send', [ChatbotController::class, 'handleChat'])

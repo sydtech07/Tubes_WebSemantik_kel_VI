@@ -110,7 +110,7 @@
             @else
                 <p class="small text-muted mb-0">
                     Jika katalog benar-benar kosong, pastikan data sudah dimuat ke Fuseki
-                    (<code>python pipeline\05_load_fuseki.py</code>) dan lihat halaman <a href="{{ route('status') }}">Status</a>.
+                    (<code>python pipeline\05_load_fuseki.py</code>) lalu muat ulang halaman ini.
                 </p>
             @endif
         </div>
