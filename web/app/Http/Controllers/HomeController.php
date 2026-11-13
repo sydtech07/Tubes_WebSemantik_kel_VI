@@ -17,50 +17,50 @@ class HomeController extends Controller
      */
     public function index(Request $request, MovieRepository $repo)
     {
-        $q     = Str::limit($request->string('q')->trim()->toString(), 100, '');
-        $genre = $request->integer('genre') ?: null;
-        $sort  = $request->string('sort')->toString();
-        $sort  = isset(MovieRepository::SORTS[$sort]) ? $sort : 'populer';
-        $page  = max(1, $request->integer('page', 1));
-        $size  = (int) config('cinelog.page_size', 24);
+        $q = Str::limit($request->string('q')->trim()->toString(), 100, '');
+        $genreIds = MovieRepository::normalizeGenres($request->input('genre'));
+        $sort = $request->string('sort')->toString();
+        $sort = isset(MovieRepository::SORTS[$sort]) ? $sort : 'populer';
+        $page = max(1, $request->integer('page', 1));
+        $size = (int) config('cinelog.page_size', 24);
 
         // Hero carousel hanya di beranda polos (tanpa pencarian/filter, halaman 1)
-        $tampilkanHero = $q === '' && ! $genre && $page === 1;
+        $tampilkanHero = $q === '' && $genreIds === [] && $page === 1;
 
         try {
-            $result   = $repo->catalog($q, $genre, $sort, $page, $size);
-            $genres   = $repo->genres();
+            $result = $repo->catalog($q, $genreIds, $sort, $page, $size);
+            $genres = $repo->genres();
             $featured = $tampilkanHero ? $repo->featured(5) : [];
-            $error    = null;
+            $error = null;
         } catch (Throwable $e) {
             report($e);
-            $result   = ['items' => [], 'total' => 0];
-            $genres   = [];
+            $result = ['items' => [], 'total' => 0];
+            $genres = [];
             $featured = [];
-            $error    = 'Data film tidak dapat diambil dari Fuseki: ' . $e->getMessage();
+            $error = 'Data film tidak dapat diambil dari Fuseki: '.$e->getMessage();
         }
 
-        $slugs   = array_column($result['items'], 'slug');
+        $slugs = array_column($result['items'], 'slug');
         $ratings = $slugs === []
             ? collect()
             : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
 
         $paginator = new LengthAwarePaginator($result['items'], $result['total'], $size, $page, [
-            'path'  => $request->url(),
-            'query' => $request->query(),
+            'path' => $request->url(),
+            'query' => array_merge($request->except(['page', 'genre']), ['genre' => $genreIds]),
         ]);
 
         return view('home', [
-            'items'     => $result['items'],
-            'total'     => $result['total'],
+            'items' => $result['items'],
+            'total' => $result['total'],
             'paginator' => $paginator,
-            'ratings'   => $ratings,
-            'genres'    => $genres,
-            'featured'  => $featured,
-            'q'         => $q,
-            'genre'     => $genre,
-            'sort'      => $sort,
-            'error'     => $error,
+            'ratings' => $ratings,
+            'genres' => $genres,
+            'featured' => $featured,
+            'q' => $q,
+            'genreIds' => $genreIds,
+            'sort' => $sort,
+            'error' => $error,
         ]);
     }
 }

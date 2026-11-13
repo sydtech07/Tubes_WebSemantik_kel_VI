@@ -124,6 +124,18 @@
                         @endif
                     </div>
 
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a class="btn btn-cl" href="{{ auth()->check() ? '#beri-ulasan' : route('login', ['next' => route('film.show', $movie, false).'#beri-ulasan']) }}"><i class="bi bi-star me-1"></i> Beri rating & ulasan</a>
+                        @auth
+                            <form action="{{ route($inWatchlist ? 'watchlist.destroy' : 'watchlist.store', $movie) }}" method="post">
+                                @csrf @method($inWatchlist ? 'delete' : 'put')
+                                <button class="btn btn-ghost" type="submit"><i class="bi {{ $inWatchlist ? 'bi-bookmark-check-fill' : 'bi-bookmark-plus' }} me-1"></i> {{ $inWatchlist ? 'Hapus dari watchlist' : 'Tambah watchlist' }}</button>
+                            </form>
+                        @else
+                            <a class="btn btn-ghost" href="{{ route('login', ['next' => route('film.show', $movie, false)]) }}"><i class="bi bi-bookmark-plus me-1"></i> Tambah watchlist</a>
+                        @endauth
+                    </div>
+
                     @if ($film['tagline'])
                         <p class="fst-italic cl-sub mb-0" property="slogan">{{ $film['tagline'] }}</p>
                     @endif
@@ -164,7 +176,7 @@
                     </div>
                 @endif
 
-                {!! $reviewsHtml !!}
+                @include('partials.community-reviews')
             </div>
 
             {{-- ===== Kolom samping: informasi dan tautan ===== --}}

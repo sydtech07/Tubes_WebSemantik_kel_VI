@@ -51,7 +51,7 @@ class MovieRepositoryTest extends TestCase
         $captured = [];
         $this->repo($captured)->catalog('', 18, 'populer', 1, 24);
 
-        $expected = 'schema:genre <' . rtrim(config('cinelog.base_uri'), '/') . '/resource/genre/18>';
+        $expected = 'schema:genre <'.rtrim(config('cinelog.base_uri'), '/').'/resource/genre/18>';
         $this->assertStringContainsString($expected, $captured[0]);
     }
 
@@ -59,5 +59,24 @@ class MovieRepositoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         (new SparqlClient('http://fuseki.test/cinelog'))->iri('http://x/> } DELETE { ?s ?p ?o');
+    }
+
+    public function test_dua_genre_harus_sama_sama_dimiliki_film(): void
+    {
+        $captured = [];
+        $this->repo($captured, 2)->catalog('', [10749, 28], 'populer', 1, 24);
+        foreach ($captured as $query) {
+            $this->assertStringContainsString('/resource/genre/10749>', $query);
+            $this->assertStringContainsString('/resource/genre/28>', $query);
+            $this->assertStringNotContainsString('UNION', $query);
+        }
+    }
+
+    public function test_genre_kosong_duplikat_dan_input_tidak_valid_dinormalisasi(): void
+    {
+        $this->assertSame([28, 10749], MovieRepository::normalizeGenres(['', '28', '28', '10749', '18']));
+        $this->assertSame([28], MovieRepository::normalizeGenres('28'));
+        $this->assertSame([], MovieRepository::normalizeGenres(['0', '-1', '28 UNION', ['18'], '1.5']));
+        $this->assertSame([], MovieRepository::normalizeGenres(null));
     }
 }

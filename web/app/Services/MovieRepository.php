@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -15,47 +16,46 @@ class MovieRepository
     public const SORTS = [
         'populer' => 'DESC(?pop) ?m',
         'terbaru' => 'DESC(?date) ?m',
-        'skor'    => 'DESC(?vote) DESC(?pop) ?m',
-        'judul'   => 'ASC(LCASE(STR(?title))) ?m',
+        'skor' => 'DESC(?vote) DESC(?pop) ?m',
+        'judul' => 'ASC(LCASE(STR(?title))) ?m',
     ];
 
-    public function __construct(private SparqlClient $sparql)
-    {
-    }
+    public function __construct(private SparqlClient $sparql) {}
 
     /**
      * Satu halaman katalog.
      *
      * @return array{items: array<int, array<string, mixed>>, total: int}
      */
-        public function catalog(string $q, ?int $genreId, string $sort, int $page, int $perPage): array
+    public function catalog(string $q, int|array|null $genreIds, string $sort, int $page, int $perPage): array
     {
+        $genreIds = self::normalizeGenres($genreIds);
         // Cache 5 menit: katalog tidak berubah antar permintaan, dan tiap halaman butuh 2 query SPARQL.
-        $key = 'cinelog.catalog.v1.' . md5(json_encode([$q, $genreId, $sort, $page, $perPage]));
+        $key = 'cinelog.catalog.v1.'.md5(json_encode([$q, $genreIds, $sort, $page, $perPage]));
         $hit = Cache::get($key);
         if ($hit !== null) {
             return $hit;
         }
-        $data = $this->catalogFresh($q, $genreId, $sort, $page, $perPage);
+        $data = $this->catalogFresh($q, $genreIds, $sort, $page, $perPage);
         Cache::put($key, $data, 300);
 
         return $data;
     }
 
-    private function catalogFresh(string $q, ?int $genreId, string $sort, int $page, int $perPage): array
+    private function catalogFresh(string $q, array $genreIds, string $sort, int $page, int $perPage): array
     {
-        $where  = $this->filters($q, $genreId);
+        $where = $this->filters($q, $genreIds);
         $prefix = $this->sparql->prefixes();
 
         $total = (int) ($this->sparql->select(
-            $prefix . "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE {\n{$where}\n}"
+            $prefix."SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE {\n{$where}\n}"
         )[0]['n'] ?? 0);
 
         if ($total === 0) {
             return ['items' => [], 'total' => 0];
         }
 
-        $order  = self::SORTS[$sort] ?? self::SORTS['populer'];
+        $order = self::SORTS[$sort] ?? self::SORTS['populer'];
         $offset = (max(1, $page) - 1) * $perPage;
 
         $query = <<<SPARQL
@@ -70,14 +70,14 @@ class MovieRepository
         SPARQL;
 
         $items = array_map(fn (array $r) => [
-            'iri'    => $r['m'],
-            'title'  => $r['title'],
-            'slug'   => Str::after($r['url'], '/film/'),
-            'date'   => $r['date'],
+            'iri' => $r['m'],
+            'title' => $r['title'],
+            'slug' => Str::after($r['url'], '/film/'),
+            'date' => $r['date'],
             'poster' => $r['poster'] ?? null,
-            'pop'    => isset($r['pop']) ? (float) $r['pop'] : null,
-            'vote'   => isset($r['vote']) ? (float) $r['vote'] : null,
-        ], $this->sparql->select($prefix . $query));
+            'pop' => isset($r['pop']) ? (float) $r['pop'] : null,
+            'vote' => isset($r['vote']) ? (float) $r['vote'] : null,
+        ], $this->sparql->select($prefix.$query));
 
         return ['items' => $items, 'total' => $total];
     }
@@ -105,10 +105,10 @@ class MovieRepository
         SPARQL;
 
         $genres = array_map(fn (array $r) => [
-            'id'    => (int) Str::afterLast($r['g'], '/'),
+            'id' => (int) Str::afterLast($r['g'], '/'),
             'label' => $r['label'],
-            'n'     => (int) $r['n'],
-        ], $this->sparql->select($this->sparql->prefixes() . $query));
+            'n' => (int) $r['n'],
+        ], $this->sparql->select($this->sparql->prefixes().$query));
 
         if ($genres !== []) {
             Cache::put('cinelog.genres.v1', $genres, 3600);
@@ -125,7 +125,7 @@ class MovieRepository
      */
     public function featured(int $limit = 5): array
     {
-        $limit  = max(1, min($limit, 10));
+        $limit = max(1, min($limit, 10));
         $cached = Cache::get("cinelog.featured.v1.{$limit}");
         if (is_array($cached) && $cached !== []) {
             return $cached;
@@ -145,14 +145,14 @@ class MovieRepository
         SPARQL;
 
         $items = array_map(fn (array $r) => [
-            'title'       => $r['title'],
-            'slug'        => Str::after($r['url'], '/film/'),
-            'date'        => $r['date'],
-            'backdrop'    => $r['backdrop'],
-            'vote'        => isset($r['vote']) ? (float) $r['vote'] : null,
-            'runtime'     => isset($r['runtime']) ? (int) $r['runtime'] : null,
+            'title' => $r['title'],
+            'slug' => Str::after($r['url'], '/film/'),
+            'date' => $r['date'],
+            'backdrop' => $r['backdrop'],
+            'vote' => isset($r['vote']) ? (float) $r['vote'] : null,
+            'runtime' => isset($r['runtime']) ? (int) $r['runtime'] : null,
             'description' => $r['descId'] ?? $r['descEn'] ?? '',
-        ], $this->sparql->select($this->sparql->prefixes() . $query));
+        ], $this->sparql->select($this->sparql->prefixes().$query));
 
         if ($items !== []) {
             Cache::put("cinelog.featured.v1.{$limit}", $items, 600);
@@ -165,10 +165,10 @@ class MovieRepository
      * Seluruh data satu film untuk halaman detail, atau null bila tidak ada di Fuseki.
      * Slug dipetakan ke film lewat schema:url (nilai ini ditulis oleh pipeline/04_build_rdf.py).
      */
-        public function detail(string $slug): ?array
+    public function detail(string $slug): ?array
     {
         // Cache 10 menit: halaman film menjalankan 4-5 query SPARQL berurutan. Hasil kosong (null) tidak disimpan.
-        $key = 'cinelog.detail.v1.' . $slug;
+        $key = 'cinelog.detail.v1.'.$slug;
         $hit = Cache::get($key);
         if ($hit !== null) {
             return $hit;
@@ -183,8 +183,8 @@ class MovieRepository
 
     private function detailFresh(string $slug): ?array
     {
-        $url    = $this->sparql->filmUrl($slug);
-        $u      = $this->sparql->iri($url);
+        $url = $this->sparql->filmUrl($slug);
+        $u = $this->sparql->iri($url);
         $prefix = $this->sparql->prefixes();
 
         $mainQuery = <<<SPARQL
@@ -244,10 +244,10 @@ class MovieRepository
 
         // Keempat query tidak saling bergantung (semuanya hanya butuh IRI film), jadi dikirim bersamaan.
         $res = $this->sparql->selectMany([
-            'main'   => $prefix . $mainQuery,
-            'genres' => $prefix . $genreQuery,
-            'crew'   => $prefix . $crewQuery,
-            'cast'   => $prefix . $castQuery,
+            'main' => $prefix.$mainQuery,
+            'genres' => $prefix.$genreQuery,
+            'crew' => $prefix.$crewQuery,
+            'cast' => $prefix.$castQuery,
         ]);
 
         $main = $res['main'][0] ?? null;
@@ -255,8 +255,8 @@ class MovieRepository
             return null;
         }
         $genres = $res['genres'];
-        $crew   = $res['crew'];
-        $cast   = $res['cast'];
+        $crew = $res['crew'];
+        $cast = $res['cast'];
 
         $person = fn (array $r) => ['iri' => $r['p'], 'name' => $r['name']];
         $byRole = fn (string $role) => array_values(
@@ -264,49 +264,56 @@ class MovieRepository
         );
 
         return [
-            'iri'         => $main['m'],
-            'url'         => $url,
-            'title'       => $main['title'],
-            'altTitle'    => $main['alt'] ?? null,
-            'date'        => $main['date'],
-            'runtime'     => isset($main['runtime']) ? (int) $main['runtime'] : null,
-            'descId'      => $main['descId'] ?? null,
-            'descEn'      => $main['descEn'] ?? null,
+            'iri' => $main['m'],
+            'url' => $url,
+            'title' => $main['title'],
+            'altTitle' => $main['alt'] ?? null,
+            'date' => $main['date'],
+            'runtime' => isset($main['runtime']) ? (int) $main['runtime'] : null,
+            'descId' => $main['descId'] ?? null,
+            'descEn' => $main['descEn'] ?? null,
             'description' => $main['descId'] ?? $main['descEn'] ?? null,
-            'tagline'     => $main['tagline'] ?? null,
-            'poster'      => $main['poster'] ?? null,
-            'backdrop'    => $main['backdrop'] ?? null,
-            'lang'        => $main['lang'] ?? null,
-            'imdb'        => $main['imdb'] ?? null,
-            'wikidata'    => $main['wd'] ?? null,
-            'vote'        => $main['vote'] ?? null,   // string asli dari RDF (mis. "8.861") agar RDFa cocok persis
-            'votes'       => isset($main['votes']) ? (int) $main['votes'] : null,
-            'budget'      => isset($main['budget']) ? (int) $main['budget'] : null,
-            'revenue'     => isset($main['revenue']) ? (int) $main['revenue'] : null,
-            'genres'      => array_map(fn (array $r) => [
-                'iri'   => $r['g'],
-                'id'    => (int) Str::afterLast($r['g'], '/'),
+            'tagline' => $main['tagline'] ?? null,
+            'poster' => $main['poster'] ?? null,
+            'backdrop' => $main['backdrop'] ?? null,
+            'lang' => $main['lang'] ?? null,
+            'imdb' => $main['imdb'] ?? null,
+            'wikidata' => $main['wd'] ?? null,
+            'vote' => $main['vote'] ?? null,   // string asli dari RDF (mis. "8.861") agar RDFa cocok persis
+            'votes' => isset($main['votes']) ? (int) $main['votes'] : null,
+            'budget' => isset($main['budget']) ? (int) $main['budget'] : null,
+            'revenue' => isset($main['revenue']) ? (int) $main['revenue'] : null,
+            'genres' => array_map(fn (array $r) => [
+                'iri' => $r['g'],
+                'id' => (int) Str::afterLast($r['g'], '/'),
                 'label' => $r['label'],
             ], $genres),
-            'directors'   => $byRole('director'),
-            'writers'     => $byRole('writer'),
-            'composers'   => $byRole('composer'),
-            'cast'        => array_map(fn (array $r) => [
-                'iri'       => $r['p'],
-                'name'      => $r['name'],
+            'directors' => $byRole('director'),
+            'writers' => $byRole('writer'),
+            'composers' => $byRole('composer'),
+            'cast' => array_map(fn (array $r) => [
+                'iri' => $r['p'],
+                'name' => $r['name'],
                 'character' => $r['char'] ?? null,
-                'order'     => isset($r['ord']) ? (int) $r['ord'] : null,
-                'photo'     => $r['photo'] ?? null,
+                'order' => isset($r['ord']) ? (int) $r['ord'] : null,
+                'photo' => $r['photo'] ?? null,
             ], $cast),
         ];
     }
-    /** Pola graf untuk katalog: judul/alt-judul mengandung kata kunci, dan (opsional) genre tertentu. */
-    private function filters(string $q, ?int $genreId): string
+
+    public static function normalizeGenres(mixed $genres): array
+    {
+        return array_slice(array_values(array_unique(array_map('intval', array_filter(Arr::wrap($genres),
+            fn ($id) => (is_int($id) || is_string($id)) && filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
+        )))), 0, 2);
+    }
+
+    private function filters(string $q, array $genreIds): string
     {
         $lines = ['?m a cin:Movie ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .'];
 
-        if ($genreId) {
-            $lines[] = '?m schema:genre ' . $this->sparql->iri($this->sparql->resource('genre', $genreId)) . ' .';
+        foreach ($genreIds as $genreId) {
+            $lines[] = '?m schema:genre '.$this->sparql->iri($this->sparql->resource('genre', $genreId)).' .';
         }
 
         $term = mb_strtolower(trim($q));

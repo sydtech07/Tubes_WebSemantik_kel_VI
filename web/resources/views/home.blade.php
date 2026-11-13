@@ -4,7 +4,7 @@
 
 @section('bleed')
 @php
-    $genreAktif = $genre ? collect($genres)->firstWhere('id', $genre) : null;
+    $genreAktif = collect($genreIds)->map(fn ($id) => collect($genres)->firstWhere('id', $id))->filter();
     // URL katalog dengan sebagian parameter diubah; parameter kosong dibuang; halaman selalu kembali ke 1
     $ubah = fn (array $p) => route('home', array_filter(
         array_merge(request()->except('page'), $p),
@@ -66,8 +66,8 @@
             <h1 class="cl-section-title">
                 @if ($q !== '')
                     Hasil pencarian "{{ $q }}"
-                @elseif ($genreAktif)
-                    Genre {{ $genreAktif['label'] }}
+                @elseif ($genreAktif->isNotEmpty())
+                    Genre {{ $genreAktif->pluck('label')->join(' + ') }}
                 @else
                     Jelajahi film 2026
                 @endif
@@ -77,7 +77,7 @@
 
         <form method="get" action="{{ route('home') }}" class="d-flex align-items-center gap-2">
             @if ($q !== '') <input type="hidden" name="q" value="{{ $q }}"> @endif
-            @if ($genre) <input type="hidden" name="genre" value="{{ $genre }}"> @endif
+            @foreach ($genreIds as $id)<input type="hidden" name="genre[]" value="{{ $id }}">@endforeach
             <label for="urutan" class="small text-muted mb-0"><i class="bi bi-sort-down"></i> Urutkan</label>
             <select id="urutan" name="sort" class="form-select form-select-sm w-auto cl-select" onchange="this.form.submit()">
                 @foreach ($urutan as $kunci => $label)
@@ -87,15 +87,36 @@
         </form>
     </div>
 
-    {{-- Chip genre: bisa digeser ke samping di HP --}}
-    <nav class="cl-chips mb-4" aria-label="Filter genre">
-        <a href="{{ $ubah(['genre' => null]) }}" class="cl-chip {{ $genre ? '' : 'active' }}">Semua</a>
-        @foreach ($genres as $g)
-            <a href="{{ $ubah(['genre' => $g['id']]) }}" class="cl-chip {{ $genre === $g['id'] ? 'active' : '' }}">
-                {{ $g['label'] }} <small>{{ $g['n'] }}</small>
-            </a>
-        @endforeach
-    </nav>
+    <form class="cl-genre-filter mb-3" method="get" action="{{ route('home') }}">
+        @if ($q !== '')<input type="hidden" name="q" value="{{ $q }}">@endif
+        <input type="hidden" name="sort" value="{{ $sort }}">
+        <div class="cl-genre-field">
+            <label class="form-label" for="genre-first"><i class="bi bi-funnel"></i> Genre</label>
+            <select class="form-select" name="genre[]" id="genre-first">
+                <option value="">Semua genre</option>
+                @foreach ($genres as $g)<option value="{{ $g['id'] }}" @selected(($genreIds[0] ?? null) === $g['id'])>{{ $g['label'] }} ({{ number_format($g['n'], 0, ',', '.') }} film)</option>@endforeach
+            </select>
+        </div>
+        <div class="cl-genre-field">
+            <label class="form-label" for="genre-second">Gabungkan dengan <span class="cl-sub">(opsional)</span></label>
+            <select class="form-select" name="genre[]" id="genre-second">
+                <option value="">Tanpa genre tambahan</option>
+                @foreach ($genres as $g)<option value="{{ $g['id'] }}" @selected(($genreIds[1] ?? null) === $g['id'])>{{ $g['label'] }} ({{ number_format($g['n'], 0, ',', '.') }} film)</option>@endforeach
+            </select>
+        </div>
+        <div class="cl-genre-actions">
+            <button class="btn btn-cl" type="submit">Terapkan filter</button>
+            @if ($genreIds !== [])<a class="btn btn-ghost" href="{{ $ubah(['genre' => null]) }}">Reset genre</a>@endif
+        </div>
+    </form>
+    <p class="cl-sub small mb-4">Pilih hingga dua genre. Film harus memiliki kedua genre yang dipilih. Angka pada pilihan menunjukkan jumlah film per genre di katalog.</p>
+    @if ($genreAktif->isNotEmpty())
+        <div class="cl-selected-genres mb-4" aria-label="Genre terpilih">
+            @foreach ($genreAktif as $g)
+                <a class="cl-chip active" href="{{ $ubah(['genre' => array_values(array_diff($genreIds, [$g['id']]))]) }}" aria-label="Hapus filter {{ $g['label'] }}">{{ $g['label'] }} <small>{{ $g['n'] }}</small> <i class="bi bi-x"></i></a>
+            @endforeach
+        </div>
+    @endif
 
     @if (! $error && $total === 0)
         <div class="cl-panel text-center py-5">
@@ -103,9 +124,9 @@
             <p class="mt-3 mb-1 fw-semibold">Tidak ada film yang cocok.</p>
             <p class="text-muted small mb-3">
                 Coba kata kunci lain
-                @if ($q !== '' || $genre) atau hapus filter @endif.
+                @if ($q !== '' || $genreIds !== []) atau hapus filter @endif.
             </p>
-            @if ($q !== '' || $genre)
+            @if ($q !== '' || $genreIds !== [])
                 <a href="{{ route('home') }}" class="btn btn-cl btn-sm">Hapus filter</a>
             @else
                 <p class="small text-muted mb-0">

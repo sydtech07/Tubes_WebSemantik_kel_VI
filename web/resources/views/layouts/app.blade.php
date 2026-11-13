@@ -31,7 +31,7 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-md navbar-dark cl-navbar sticky-top">
-    <div class="container">
+    <div class="container-fluid cl-nav-container">
         <a class="navbar-brand cl-brand" href="{{ route('home') }}">CINÉLOG</a>
 
         {{-- Tombol hamburger: tampil hanya di layar kecil (HP) --}}
@@ -58,11 +58,27 @@
                 </div>
                 <div id="clSuggest" class="cl-suggest" role="listbox" hidden></div>
             </form>
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-md-3 py-2 py-md-0">
+                @auth
+                    @if (auth()->user()->isAdmin())<a class="nav-link small {{ request()->routeIs('admin.*') ? 'text-white' : 'cl-sub' }}" href="{{ route('admin.dashboard') }}">Admin</a>@endif
+                    <a class="btn btn-ghost btn-sm cl-profile-link" href="{{ route('profile') }}"><i class="bi bi-person-circle"></i> Profil</a>
+                    <form action="{{ route('logout') }}" method="post">@csrf<button class="btn btn-link cl-sub small p-1" type="submit">Keluar</button></form>
+                @else
+                    <a class="nav-link small cl-sub" href="{{ route('login') }}">Masuk</a>
+                    <a class="btn btn-cl btn-sm" href="{{ route('register') }}">Daftar</a>
+                @endauth
+            </div>
         </div>
     </div>
 </nav>
 
 {{-- Halaman yang butuh lebar penuh (hero) memakai section 'bleed'; halaman lain memakai 'content' di dalam container --}}
+@if (session('status') || $errors->any())
+    <div class="container mt-3" role="status">
+        @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
+        @if ($errors->any())<div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    </div>
+@endif
 @hasSection('bleed')
     <main>@yield('bleed')</main>
 @else
@@ -71,8 +87,7 @@
 
 <footer class="cl-footer">
     <div class="container text-center text-md-start">
-        <strong>CINÉLOG</strong> · katalog film berbasis data semantik (RDF, SPARQL, Fuseki).<br>
-        Produk ini memakai API TMDB tetapi tidak didukung atau disertifikasi oleh TMDB.
+        <strong>CINÉLOG</strong> · katalog film berbasis data semantik (RDF, SPARQL, Fuseki).
     </div>
 </footer>
 
@@ -284,6 +299,13 @@
     restore();
     if (load(KEY_OPEN) === '1') setOpen(true);
 })();
+</script>
+<script>
+document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+});
 </script>
 </body>
 </html>

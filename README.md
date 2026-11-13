@@ -20,5 +20,9 @@ Data film (sumber: TMDB) diolah menjadi RDF, disimpan di triple store, dan ditam
 | `sparql/` | query SPARQL (federasi Wikidata) |
 | `docker/`, `docker-compose.yml` | Fuseki, MariaDB, MongoDB, aplikasi Laravel |
 | `web/` | aplikasi Laravel |
-| `scripts/` | alat bantu: konfigurasi `.env` Laravel, bukti RDFa, perapian repo |
-| `docs/` | panduan tim dan hasil pengujian |
+| `scripts/` | alat bantu: konfigurasi `.env` Laravel dan validasi RDFa |
+| `docs/` | hasil pengujian SPARQL |
+
+## Akun admin
+
+Daftarkan akun di aplikasi, lalu jalankan `docker compose exec app php artisan cinelog:admin email-admin@example.com` dari folder utama proyek untuk menjadikannya admin. Ganti email dengan akun yang terdaftar. Dashboard tersedia di `/admin`.

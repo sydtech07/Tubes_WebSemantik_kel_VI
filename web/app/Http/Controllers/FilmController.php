@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use App\Services\MovieRepository;
-use Illuminate\Support\Facades\Cache;
+use App\Services\ReviewFeed;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -15,7 +16,7 @@ class FilmController extends Controller
      * Data deskriptif (judul, sinopsis, genre, kru, pemeran) dari Fuseki lewat SPARQL;
      * rating dan jumlah ulasan dari MariaDB lewat Eloquent ($movie).
      */
-    public function show(Movie $movie, MovieRepository $repo)
+    public function show(Request $request, Movie $movie, MovieRepository $repo, ReviewFeed $reviewFeed)
     {
         try {
             $film = $repo->detail($movie->slug);
@@ -26,23 +27,24 @@ class FilmController extends Controller
 
         abort_if($film === null, 404, 'Film ini belum ada di dataset RDF.');
 
-        // Ulasan TMDB: 2 query + render markdown puluhan ulasan itu mahal, padahal jarang berubah -> simpan HTML jadinya 10 menit.
-        // Setelah mengimpor ulasan baru: php artisan cache:clear
-        $reviews = Cache::remember("cinelog.reviews.v1.{$movie->id}", 600, function () use ($movie) {
-            $items = $movie->externalReviews()->orderByDesc('posted_at')->limit(60)->get();
-            $count = $movie->externalReviews()->count();
-
-            return [
-                'count' => $count,
-                'html'  => view('partials.external-reviews', ['externalReviews' => $items, 'externalReviewsCount' => $count])->render(),
-            ];
-        });
+        $source = $request->string('sumber')->toString();
+        $source = in_array($source, ['cinelog', 'tmdb'], true) ? $source : 'all';
+        $sort = $request->string('urutan_ulasan')->toString();
+        $sort = in_array($sort, ['high', 'low'], true) ? $sort : 'new';
+        $communityCount = $movie->reviews()->count();
+        $externalCount = $movie->externalReviews()->where('source', 'tmdb')->count();
 
         return view('film', [
-            'movie'         => $movie,
-            'film'          => $film,
-            'externalReviewsCount' => $reviews['count'],
-            'reviewsHtml'     => $reviews['html'],
+            'movie' => $movie,
+            'viewerReviews' => $reviewFeed->forMovie($movie, $source, $sort),
+            'reviewSource' => $source,
+            'reviewSort' => $sort,
+            'communityReviewsCount' => $communityCount,
+            'viewerReviewsCount' => $communityCount + $externalCount,
+            'myReview' => auth()->check() ? $movie->reviews()->where('user_id', auth()->id())->first() : null,
+            'inWatchlist' => auth()->check() && auth()->user()->watchlistMovies()->where('movies.id', $movie->id)->exists(),
+            'film' => $film,
+            'externalReviewsCount' => $externalCount,
             'ogDescription' => Str::limit(trim((string) $film['description']), 200),
         ]);
     }

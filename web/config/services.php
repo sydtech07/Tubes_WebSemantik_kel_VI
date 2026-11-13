@@ -40,4 +40,13 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-3.1-flash-lite'),
     ],
 
+    'openrouteservice' => [
+        'key' => env('ORS_API_KEY'),
+        'url' => 'https://api.heigit.org/openrouteservice',
+    ],
+
+    'valhalla' => [
+        'url' => 'https://valhalla1.openstreetmap.de',
+    ],
+
 ];

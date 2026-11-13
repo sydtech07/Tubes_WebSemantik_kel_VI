@@ -3,9 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Services\CinemaRepository;
+use App\Services\CinemaRouting;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CinemaController extends Controller
 {
+    public function route(Request $request, CinemaRepository $repo, CinemaRouting $routing)
+    {
+        $data = $request->validate([
+            'cinema_id' => ['required', 'string', 'max:100'],
+            'origin.lat' => ['required', 'numeric', 'between:-90,90'],
+            'origin.lng' => ['required', 'numeric', 'between:-180,180'],
+            'profile' => ['required', Rule::in(['driving-car', 'motorcycle', 'foot-walking', 'cycling-regular'])],
+        ]);
+        $cinema = collect($repo->all())->firstWhere('id', $data['cinema_id']);
+        abort_unless($cinema, 404, 'Bioskop tidak ditemukan.');
+
+        return response()->json($routing->directions($data['origin'], $cinema, $data['profile']));
+    }
+
     /** Peta + daftar bioskop Medan dan Sumatera Utara. */
     public function index(CinemaRepository $repo)
     {
@@ -37,10 +54,10 @@ class CinemaController extends Controller
 
         $cities = collect($cinemas)->countBy('city')->sortDesc();
 
-        return view('bioskop', [
+        return response()->view('bioskop', [
             'cinemas' => $cinemas,
-            'cities'  => $cities,
-            'jsonLd'  => $jsonLd,
-        ]);
+            'cities' => $cities,
+            'jsonLd' => $jsonLd,
+        ])->header('Cache-Control', 'no-store, private');
     }
 }
