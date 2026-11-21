@@ -130,8 +130,8 @@ class ThemeSearch
         $byKeyword = <<<SPARQL
         SELECT DISTINCT ?m ?title ?url ?date ?poster ?pop ?vote ?c ?label WHERE {
           VALUES (?c ?pat) { {$values} }
-          ?m a cin:Movie ; cin:hasKeyword ?k ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .
-          ?k skos:prefLabel ?label .
+          ?m a cin:Movie ; cin:hasl Keyword ?k ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .
+          ?k skos:prefLabel ?labe.
           FILTER( REGEX(STR(?label), ?pat, "i") )
           OPTIONAL { ?m schema:image ?poster }
           OPTIONAL { ?m cin:popularity ?pop }

@@ -13,6 +13,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\WatchlistController;
+use App\Http\Controllers\WikidataController;
 use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MidtransWebhookController;
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function () {
     });
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/film/{movie}/wikidata', WikidataController::class)->middleware('throttle:30,1')->name('film.wikidata');
 Route::get('/film/{movie}', [FilmController::class, 'show'])->name('film.show');   // {movie} dicari lewat kolom slug
 
 // Pencarian lintas film, orang, karakter, dan genre + saran ketik (JSON) + halaman orang

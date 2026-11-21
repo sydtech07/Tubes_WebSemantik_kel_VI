@@ -264,8 +264,18 @@
                                class="btn btn-ghost btn-sm">Wikidata</a>
                         @endif
                     </div>
-                    {{-- 2B-4: kotak data Wikidata (negara asal, box office) ditempatkan di sini --}}
                 </div>
+                <section class="cl-panel mt-4" vocab="" aria-labelledby="wikidata-title">
+                    <h2 id="wikidata-title"><i class="bi bi-globe2" aria-hidden="true"></i> Informasi Wikidata</h2>
+                    @if (!empty($film['wikidata']))
+                        <div id="wikidata-facts" data-url="{{ route('film.wikidata', ['movie' => $movie->slug]) }}" aria-live="polite" aria-busy="true">
+                            <p class="cl-sub small mb-0" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Memuat informasi tambahan…</p>
+                        </div>
+                        <noscript><p class="cl-sub small mt-2">Aktifkan JavaScript atau <a href="{{ route('film.wikidata', ['movie' => $movie->slug]) }}">buka informasi Wikidata</a>.</p></noscript>
+                    @else
+                        <p class="cl-sub small mb-0">Film ini belum terhubung dengan Wikidata.</p>
+                    @endif
+                </section>
             </aside>
         </div>
     </div>
@@ -297,4 +307,34 @@
         </section>
     @endif
 </article>
+<script>
+(() => {
+    const panel = document.getElementById('wikidata-facts');
+    if (!panel) return;
+    let loading = false;
+    async function load() {
+        if (loading) return;
+        loading = true;
+        panel.setAttribute('aria-busy', 'true');
+        panel.innerHTML = '<p class="cl-sub small mb-0" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Memuat informasi tambahan…</p>';
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
+        try {
+            const response = await fetch(panel.dataset.url, { headers: { Accept: 'text/html' }, signal: controller.signal });
+            if (!response.ok) throw new Error('Wikidata unavailable');
+            panel.innerHTML = await response.text();
+        } catch (error) {
+            panel.innerHTML = '<p class="cl-sub small">Informasi tambahan belum dapat dimuat. Coba lagi sebentar.</p><button type="button" class="btn btn-ghost btn-sm" data-wikidata-retry>Coba lagi</button>';
+        } finally {
+            clearTimeout(timeout);
+            loading = false;
+            panel.setAttribute('aria-busy', 'false');
+        }
+    }
+    panel.addEventListener('click', event => {
+        if (event.target.closest('[data-wikidata-retry]')) load();
+    });
+    load();
+})();
+</script>
 @endsection
