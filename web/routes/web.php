@@ -2,21 +2,21 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\CinemaController;
+use App\Http\Controllers\CinemaReviewController;
 use App\Http\Controllers\FilmController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResourceController;
-use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ScreeningController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\WatchlistController;
 use App\Http\Controllers\WikidataController;
-use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MidtransWebhookController;
 
 Route::middleware('guest')->group(function () {
     Route::get('/masuk', [AuthController::class, 'form'])->name('login');
@@ -29,8 +29,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/keluar', [AuthController::class, 'logout'])->name('logout');
     Route::get('/profil', [ProfileController::class, 'show'])->name('profile');
     Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
-    Route::put('/film/{movie}/ulasan', [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('reviews.store');
-    Route::delete('/ulasan/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::put('/bioskop/{cinema}/rating', [CinemaReviewController::class, 'store'])->where('cinema', '[A-Za-z0-9_-]+')->middleware('throttle:20,1')->name('cinemas.reviews.store');
+    Route::delete('/bioskop/{cinema}/rating', [CinemaReviewController::class, 'destroy'])->where('cinema', '[A-Za-z0-9_-]+')->name('cinemas.reviews.destroy');
     Route::put('/film/{movie}/watchlist', [WatchlistController::class, 'store'])->name('watchlist.store');
     Route::delete('/film/{movie}/watchlist', [WatchlistController::class, 'destroy'])->name('watchlist.destroy');
     Route::get('/booking/kursi', [BookingController::class, 'create'])->name('bookings.create');
@@ -47,7 +47,7 @@ Route::middleware('auth')->group(function () {
     });
     Route::post('/booking/{booking}/bayar', [BookingController::class, 'pay'])
         ->name('bookings.pay');
-    });
+});
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/film/{movie}/wikidata', WikidataController::class)->middleware('throttle:30,1')->name('film.wikidata');
@@ -74,4 +74,4 @@ Route::post('/chatbot/send', [ChatbotController::class, 'handleChat'])
     ->name('chatbot.send');
 
 Route::post('/payments/midtrans/notification', MidtransWebhookController::class)
-->name('payments.midtrans.notification');
+    ->name('payments.midtrans.notification');

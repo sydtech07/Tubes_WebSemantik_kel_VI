@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Services\CinemaRepository;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class CinemaRoutingTest extends TestCase
@@ -12,6 +16,21 @@ class CinemaRoutingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
+        DB::purge('sqlite');
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->string('role')->default('user');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+        $userMigration = require database_path('migrations/2026_11_13_000001_add_last_seen_at_to_users.php');
+        $userMigration->up();
+        $migration = require database_path('migrations/2026_11_21_030000_create_cinema_reviews_table.php');
+        $migration->up();
         config(['services.openrouteservice.key' => 'routing-test-key']);
         Http::preventStrayRequests();
     }
@@ -54,8 +73,39 @@ class CinemaRoutingTest extends TestCase
             ->assertSee('Rute perjalanan')->assertSee('Pilih titik awal di peta')->assertSee('<option value="motorcycle">Motor</option>', false)
             ->assertSee('koordinat titik awal dan bioskop dikirim ke OpenRouteService')
             ->assertSee('https://tile.openstreetmap.org/', false)->assertDontSee('basemaps.cartocdn.com', false)
-            ->assertDontSee('google.com/maps/dir', false)->assertDontSee('routing-test-key');
+            ->assertDontSee('google.com/maps/dir', false)->assertSee('google.com/maps/search/', false)
+            ->assertSee('Belum ada rating pengguna')->assertDontSee('routing-test-key');
         Http::assertNothingSent();
+    }
+
+    public function test_user_can_create_update_and_delete_their_cinema_rating(): void
+    {
+        $user = User::create(['name' => 'Penonton', 'email' => 'penonton@example.test', 'password' => 'rahasia123']);
+
+        $this->put(route('cinemas.reviews.store', 'cgv-001'), ['rating' => 4])
+            ->assertRedirect(route('login'));
+        $this->actingAs($user)->put(route('cinemas.reviews.store', 'cgv-001'), ['rating' => 4])
+            ->assertRedirect(route('cinemas').'#cinema-cgv-001');
+        $this->put(route('cinemas.reviews.store', 'cgv-001'), ['rating' => 5])
+            ->assertRedirect(route('cinemas').'#cinema-cgv-001');
+        $this->assertDatabaseCount('cinema_reviews', 1);
+        $this->assertDatabaseHas('cinema_reviews', ['user_id' => $user->id, 'cinema_id' => 'cgv-001', 'rating' => 5]);
+
+        $response = $this->get(route('cinemas'))->assertOk();
+        $this->assertSame(5, collect($response->viewData('cinemas'))->firstWhere('id', 'cgv-001')['user_rating']);
+        $this->assertSame(5.0, collect($response->viewData('cinemas'))->firstWhere('id', 'cgv-001')['average_rating']);
+
+        $this->delete(route('cinemas.reviews.destroy', 'cgv-001'))->assertRedirect(route('cinemas').'#cinema-cgv-001');
+        $this->assertDatabaseCount('cinema_reviews', 0);
+    }
+
+    public function test_cinema_ratings_validate_score_and_reject_unknown_locations(): void
+    {
+        $user = User::create(['name' => 'Penonton', 'email' => 'penonton@example.test', 'password' => 'rahasia123']);
+        $this->actingAs($user)->put(route('cinemas.reviews.store', 'cgv-001'), ['rating' => 6])->assertSessionHasErrors('rating');
+        $this->put(route('cinemas.reviews.store', 'cgv-001'), ['rating' => '3.5'])->assertSessionHasErrors('rating');
+        $this->put(route('cinemas.reviews.store', 'bioskop-tidak-ada'), ['rating' => 4])->assertNotFound();
+        $this->assertDatabaseCount('cinema_reviews', 0);
     }
 
     public function test_route_uses_server_side_key_correct_coordinates_and_safe_response(): void

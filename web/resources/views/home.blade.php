@@ -162,9 +162,7 @@
                         <div class="cl-title">{{ $m['title'] }}</div>
                         <div class="cl-meta">{{ \Illuminate\Support\Carbon::parse($m['date'])->locale('id')->translatedFormat('d M Y') }}</div>
                         <div class="cl-meta">
-                            @if ($r && $r->reviews_count > 0)
-                                <i class="bi bi-people-fill"></i> {{ number_format($r->avg_rating, 1) }} ({{ $r->reviews_count }} ulasan)
-                            @elseif ($r && $r->external_reviews_count > 0)
+                            @if ($r && $r->external_reviews_count > 0)
                                 <i class="bi bi-chat-quote-fill"></i> {{ $r->external_reviews_count }} ulasan TMDB
                             @else
                                 belum ada ulasan

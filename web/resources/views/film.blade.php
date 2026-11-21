@@ -102,45 +102,30 @@
 
                     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                         @if ($vote !== null)
-                            <span class="cl-score-box">
-                                <span class="cl-ring cl-ring-lg" style="--p: {{ round($vote * 10) }}; --c: {{ $warna }}"><span>{{ number_format($vote, 1) }}</span></span>
-                                <span>Skor<br>TMDB</span>
+                            <span class="cl-score-box" property="aggregateRating" typeof="AggregateRating">
+                                <span class="cl-ring cl-ring-lg" style="--p: {{ round($vote * 10) }}; --c: {{ $warna }}"><span property="ratingValue">{{ number_format($vote, 1) }}</span></span>
+                                <span>Skor<br>TMDB
+                                    @if ($film['votes'])
+                                        <meta property="ratingCount" content="{{ $film['votes'] }}">
+                                    @endif
+                                    <meta property="bestRating" content="10">
+                                </span>
                             </span>
                         @endif
 
-                        {{-- Rating pengguna CINÉLOG: dari MariaDB (trigger). Hanya ditulis sebagai RDFa bila sudah ada ulasan. --}}
-                        @if ($movie->reviews_count > 0)
-                            <p class="cl-rating" property="aggregateRating" typeof="AggregateRating">
-                                <i class="bi bi-people-fill"></i>
-                                <span property="ratingValue">{{ number_format($movie->avg_rating, 2) }}</span>
-                                <small>/ <span property="bestRating">10</span> · <span property="reviewCount">{{ $movie->reviews_count }}</span> ulasan</small>
-                            </p>
-                        @elseif ($externalReviewsCount > 0)
+                        @if ($externalReviewsCount > 0)
                             <a href="#ulasan" class="cl-sub small text-decoration-none">
                                 <i class="bi bi-chat-quote-fill"></i> {{ $externalReviewsCount }} ulasan TMDB
                             </a>
                         @else
-                            <span class="cl-sub small"><i class="bi bi-chat-square-text"></i> Belum ada ulasan.</span>
+                            <span class="cl-sub small"><i class="bi bi-chat-square-text"></i> Belum ada ulasan eksternal.</span>
                         @endif
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                            @php
-                                $reviewButtonUrl = auth()->check() && $canReview
-                                    ? ($myReview
-                                        ? route('film.show', ['movie' => $movie, 'edit_review' => 1]).'#beri-ulasan'
-                                        : '#beri-ulasan')
-                                    : (auth()->check()
-                                        ? '#ulasan-pengguna'
-                                        : route('login', ['next' => route('film.show', $movie, false).'#beri-ulasan']));
-                            @endphp
-
-                            <a class="btn btn-cl" href="{{ $reviewButtonUrl }}">
-                                <i class="bi bi-star me-1"></i>
-                                {{ auth()->check() && $canReview
-                                    ? ($myReview ? 'Edit rating & ulasan' : 'Beri rating & ulasan')
-                                    : 'Syarat rating' }}
-                            </a>
+                            @if ($externalReviewsCount > 0)
+                                <a class="btn btn-ghost" href="#ulasan-tmdb"><i class="bi bi-chat-quote me-1"></i> Baca ulasan TMDB</a>
+                            @endif
                         @auth
                             <form action="{{ route($inWatchlist ? 'watchlist.destroy' : 'watchlist.store', $movie) }}" method="post">
                                 @csrf @method($inWatchlist ? 'delete' : 'put')
@@ -191,7 +176,7 @@
                     </div>
                 @endif
 
-                @include('partials.community-reviews')
+                @include('partials.external-reviews')
             </div>
 
             {{-- ===== Kolom samping: informasi dan tautan ===== --}}

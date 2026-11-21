@@ -1584,6 +1584,34 @@ input:focus-visible {
     gap: 0.5rem;
     margin-top: 0.2rem;
 }
+.cl-bk-rating-summary {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.2rem 0.95rem 0;
+}
+.cl-bk-rating-summary strong {
+    color: #ffc83d;
+    font-size: 0.9rem;
+}
+.cl-bk-rating-actions,
+.cl-bk-rating-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+.cl-bk-rating-actions {
+    padding: 0.45rem 0.95rem 0.2rem;
+}
+.cl-bk-rating-form select {
+    width: auto;
+    min-width: 7rem;
+}
+.cl-bk-rating-clear {
+    margin: 0;
+}
 .cl-bk-chain {
     flex: none;
     font-size: 0.68rem;

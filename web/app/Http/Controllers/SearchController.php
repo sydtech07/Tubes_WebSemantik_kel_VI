@@ -61,7 +61,7 @@ class SearchController extends Controller
         $slugs = array_merge(array_column($result['films'], 'slug'), array_column($theme['films'], 'slug'));
         $ratings = $slugs === []
             ? collect()
-            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
+            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug'])->keyBy('slug');
 
         return view('search', [
             'q' => $q, 'result' => $result, 'theme' => $theme, 'ratings' => $ratings, 'maksud' => $maksud,
@@ -76,10 +76,10 @@ class SearchController extends Controller
 
         try {
             $items = array_map(fn (array $s) => [
-                'kind'  => $s['kind'],
+                'kind' => $s['kind'],
                 'label' => $s['label'],
-                'url'   => match ($s['kind']) {
-                    'film'  => route('film.show', $s['key']),
+                'url' => match ($s['kind']) {
+                    'film' => route('film.show', $s['key']),
                     'orang' => route('person.show', ['id' => $s['key']]),
                     default => route('home', ['genre' => $s['key']]),
                 },

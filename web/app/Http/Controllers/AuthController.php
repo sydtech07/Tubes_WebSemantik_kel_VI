@@ -12,7 +12,9 @@ class AuthController extends Controller
     public function form(Request $request)
     {
         $next = $request->query('next');
-        if (is_string($next) && preg_match('~^/film/[a-zA-Z0-9-]+(?:#(?:ulasan-pengguna|beri-ulasan))?$~D', $next)) {
+        $validFilmReturn = is_string($next) && preg_match('~^/film/[a-zA-Z0-9-]+(?:#ulasan-tmdb)?$~D', $next);
+        $validCinemaReturn = is_string($next) && preg_match('~^/bioskop#cinema-[A-Za-z0-9_-]+$~D', $next);
+        if ($validFilmReturn || $validCinemaReturn) {
             $request->session()->put('url.intended', $next);
         }
 

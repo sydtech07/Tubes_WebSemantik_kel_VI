@@ -9,6 +9,31 @@ Data film (sumber: TMDB) diolah menjadi RDF, sedangkan dataset bioskop, auditori
 | Riwayat chatbot | MongoDB | `localhost:27017` |
 | Aplikasi web | Laravel 13 (PHP 8.3) | http://localhost:8000 |
 
+## Menjalankan aplikasi (Windows/PowerShell)
+
+Pastikan Docker Desktop dan Python tersedia. Dari root proyek:
+
+```powershell
+# Hanya jika file .env belum ada; isi password sebelum menjalankan Docker.
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+if (-not (Test-Path web\.env)) { Copy-Item web\.env.example web\.env }
+python scripts\configure_laravel_env.py
+
+# Mulai MariaDB, Fuseki, dan MongoDB terlebih dahulu.
+docker compose up -d mariadb fuseki mongo
+
+# Instal dependency ke volume Docker, buat APP_KEY sekali saja pada pemakaian pertama,
+# lalu jalankan migrasi (termasuk tabel rating bioskop).
+docker compose --profile app run --rm app composer install --optimize-autoloader
+# Jalankan hanya jika APP_KEY masih kosong di web\.env.
+docker compose --profile app run --rm app php artisan key:generate
+docker compose --profile app run --rm app php artisan migrate --force
+docker compose --profile app up -d app
+```
+
+Buka `http://localhost:8000`. Untuk katalog film, bangun dan muat dataset RDF ke Fuseki mengikuti bagian [Knowledge graph bioskop](#knowledge-graph-bioskop-fase-1-2) dan [Memperbarui data film](#memperbarui-data-film-terbaru-dari-tmdb). Lihat log aplikasi dengan `docker compose logs -f app`; hentikan layanan dengan `docker compose down` (volume data tidak dihapus).
+
+> **Catatan:** `app` memakai Compose profile, jadi `docker compose up -d --build` tanpa `--profile app` tidak menyalakan Laravel. Rating bioskop di CINÉLOG disimpan terpisah dari rating film. Nilai Google Maps belum diimpor karena proyek belum memiliki Google Places API key/Place ID atau dataset rating terverifikasi; tautan Google Maps pada tiap bioskop membuka pencarian tempatnya.
 
 ## Memperbarui data film terbaru dari TMDB
 

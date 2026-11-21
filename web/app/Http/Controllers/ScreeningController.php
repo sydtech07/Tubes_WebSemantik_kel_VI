@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Movie;
 use App\Services\ScreeningRepository;
 use Illuminate\Http\Request;
 use Throwable;
@@ -10,10 +11,9 @@ class ScreeningController extends Controller
 {
     /** Halaman film dengan jadwal tayang aktif/akan datang dari Fuseki. */
     public function index(
-    Request $request,
-    ScreeningRepository $repository
-) 
-    {
+        Request $request,
+        ScreeningRepository $repository
+    ) {
         $city = trim($request->string('kota')->toString());
         $genreId = filter_var($request->input('genre'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
 
@@ -30,13 +30,9 @@ class ScreeningController extends Controller
 
             $ratings = empty($slugs)
                 ? collect()
-                : \App\Models\Movie::whereIn('slug', $slugs)
+                : Movie::whereIn('slug', $slugs)
                     ->withCount('externalReviews')
-                    ->get([
-                        'slug',
-                        'avg_rating',
-                        'reviews_count'
-                    ])
+                    ->get(['slug'])
                     ->keyBy('slug');
 
             $error = null;

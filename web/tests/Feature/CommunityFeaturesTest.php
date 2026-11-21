@@ -3,13 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Movie;
-use App\Models\Review;
 use App\Models\User;
 use App\Services\MovieRepository;
 use App\Services\ScreeningRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -31,6 +31,8 @@ class CommunityFeaturesTest extends TestCase
         });
         $migration = require database_path('migrations/2026_11_13_000001_add_last_seen_at_to_users.php');
         $migration->up();
+        $cinemaReviewMigration = require database_path('migrations/2026_11_21_030000_create_cinema_reviews_table.php');
+        $cinemaReviewMigration->up();
         $bookingMigration = require database_path('migrations/2026_11_19_000001_create_bookings_tables.php');
         $bookingMigration->up();
         Schema::create('movies', function (Blueprint $table) {
@@ -104,28 +106,13 @@ class CommunityFeaturesTest extends TestCase
         });
     }
 
-    private function eligibleBooking(User $user, Movie $movie): void
-    {
-        DB::table('bookings')->insert([
-            'user_id' => $user->id,
-            'screening_iri' => 'http://example.test/screening/'.$movie->id,
-            'movie_slug' => $movie->slug,
-            'cinema_id' => 'test-cinema',
-            'show_start' => now()->subHour(),
-            'seat_count' => 1,
-            'total_amount' => 25000,
-            'status' => 'paid',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    }
-
     public function test_guest_can_view_film_but_interactions_require_login(): void
     {
         $movie = $this->movie();
         $this->mockFilm($movie);
-        $this->get(route('film.show', $movie))->assertOk()->assertSee('Masuk untuk memberi ulasan');
-        $this->put(route('reviews.store', $movie), ['rating' => 8])->assertRedirect(route('login'));
+        $this->get(route('film.show', $movie))->assertOk()->assertDontSee('Beri rating & ulasan');
+        $this->assertFalse(Route::has('reviews.store'));
+        $this->put('/film/'.$movie->slug.'/ulasan', ['rating' => 8])->assertNotFound();
         $this->put(route('watchlist.store', $movie))->assertRedirect(route('login'));
         $this->get(route('profile'))->assertRedirect(route('login'));
         $this->assertDatabaseCount('reviews', 0);
@@ -134,11 +121,11 @@ class CommunityFeaturesTest extends TestCase
 
     public function test_registration_hashes_password_ignores_admin_role_and_returns_to_film(): void
     {
-        $this->get('/daftar?next='.urlencode('/film/film-contoh#beri-ulasan'))->assertOk();
+        $this->get('/daftar?next='.urlencode('/film/film-contoh#ulasan-tmdb'))->assertOk();
         $this->post(route('register.store'), [
             'name' => 'Ayu', 'email' => 'ayu@example.test', 'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123', 'role' => 'admin',
-        ])->assertRedirect('/film/film-contoh#beri-ulasan');
+        ])->assertRedirect('/film/film-contoh#ulasan-tmdb');
         $user = User::first();
         $this->assertAuthenticatedAs($user);
         $this->assertTrue(Hash::check('rahasia123', $user->password));
@@ -179,50 +166,31 @@ class CommunityFeaturesTest extends TestCase
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'rahasia123'])->assertRedirect(route('profile'));
     }
 
-    public function test_rating_can_be_created_updated_without_duplicates_and_deleted(): void
+    public function test_login_returns_to_a_valid_cinema_rating_target(): void
+    {
+        $user = $this->user();
+        $target = '/bioskop#cinema-cgv-001';
+        $this->get('/masuk?next='.urlencode($target))->assertOk();
+        $this->post(route('login.store'), ['email' => $user->email, 'password' => 'rahasia123'])->assertRedirect($target);
+    }
+
+    public function test_film_reviews_from_users_are_hidden_while_external_reviews_remain(): void
     {
         $user = $this->user();
         $movie = $this->movie();
-        $this->eligibleBooking($user, $movie);
-        $this->actingAs($user)->put(route('reviews.store', $movie), ['rating' => 8])->assertSessionHasNoErrors();
-        $this->put(route('reviews.store', $movie), ['rating' => 9, 'body' => 'Bagus!', 'contains_spoiler' => '1'])->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('reviews', 1);
-        $this->assertDatabaseHas('reviews', ['user_id' => $user->id, 'movie_id' => $movie->id, 'rating' => 9, 'body' => 'Bagus!', 'contains_spoiler' => 1]);
-        $this->delete(route('reviews.destroy', Review::first()))->assertRedirect();
-        $this->assertDatabaseCount('reviews', 0);
-    }
-
-    public function test_invalid_rating_and_deleting_another_users_review_are_rejected(): void
-    {
-        $owner = $this->user();
-        $other = $this->user('other@example.test');
-        $movie = $this->movie();
-        $this->eligibleBooking($other, $movie);
-        $review = $owner->reviews()->create(['movie_id' => $movie->id, 'rating' => 7]);
-        $this->actingAs($other)->put(route('reviews.store', $movie), ['rating' => 11])->assertSessionHasErrors('rating');
-        $this->put(route('reviews.store', $movie), ['rating' => '8.5'])->assertSessionHasErrors('rating');
-        $this->delete(route('reviews.destroy', $review))->assertForbidden();
-        $this->assertDatabaseCount('reviews', 1);
-    }
-
-    public function test_deleting_review_from_profile_returns_to_profile(): void
-    {
-        $user = $this->user();
-        $movie = $this->movie();
-        $review = $user->reviews()->create(['movie_id' => $movie->id, 'rating' => 8]);
-        $this->actingAs($user)->get(route('profile'))->assertOk()->assertSee('name="return_to" value="profile"', false);
-        $this->delete(route('reviews.destroy', $review), ['return_to' => 'profile'])
-            ->assertRedirect(route('profile').'#rating-saya');
-        $this->assertDatabaseCount('reviews', 0);
-    }
-
-    public function test_deleting_review_from_film_ignores_untrusted_return_url(): void
-    {
-        $user = $this->user();
-        $movie = $this->movie();
-        $review = $user->reviews()->create(['movie_id' => $movie->id, 'rating' => 8]);
-        $this->actingAs($user)->delete(route('reviews.destroy', $review), ['return_to' => 'https://example.org'])
-            ->assertRedirect(route('film.show', $movie).'#ulasan-pengguna');
+        $user->reviews()->create(['movie_id' => $movie->id, 'rating' => 8, 'body' => 'Rating lama CINÉLOG']);
+        DB::table('external_reviews')->insert([
+            'movie_id' => $movie->id, 'author' => 'Penonton TMDB', 'rating' => 8,
+            'content' => 'Ulasan TMDB yang tetap ditampilkan',
+        ]);
+        $this->mockFilm($movie);
+        $this->actingAs($user)->get(route('film.show', $movie))->assertOk()
+            ->assertSee('Ulasan dari TMDB')->assertSee('Ulasan TMDB yang tetap ditampilkan')
+            ->assertDontSee('Rating lama CINÉLOG')->assertDontSee('Rating komunitas CINÉLOG')
+            ->assertDontSee('Beri rating & ulasan');
+        $this->get(route('profile'))->assertOk()
+            ->assertDontSee('Rating lama CINÉLOG')->assertDontSee('Rating & ulasan saya');
+        $this->assertFalse(Route::has('reviews.store'));
     }
 
     public function test_catalog_renders_compact_dual_genre_filter_and_preserves_selection(): void
@@ -314,14 +282,15 @@ class CommunityFeaturesTest extends TestCase
         $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
     }
 
-    public function test_film_renders_own_review_and_hides_spoiler_in_details(): void
+    public function test_film_does_not_render_existing_user_rating_or_review(): void
     {
         $user = $this->user();
         $movie = $this->movie();
         $user->reviews()->create(['movie_id' => $movie->id, 'rating' => 8, 'body' => '<img src=x onerror=alert(1)>', 'contains_spoiler' => true]);
-        $this->eligibleBooking($user, $movie);
         $this->mockFilm($movie);
-        $this->actingAs($user)->get(route('film.show', $movie))->assertOk()->assertSee('Edit rating & ulasan')->assertSee('Mengandung spoiler')->assertDontSee('<img src=x onerror=alert(1)>', false);
+        $this->actingAs($user)->get(route('film.show', $movie))->assertOk()
+            ->assertDontSee('Edit rating & ulasan')->assertDontSee('Mengandung spoiler')
+            ->assertDontSee('<img src=x onerror=alert(1)>', false);
     }
 
     public function test_admin_command_only_promotes_existing_accounts(): void
@@ -332,7 +301,7 @@ class CommunityFeaturesTest extends TestCase
         $this->assertTrue($user->fresh()->isAdmin());
     }
 
-    public function test_viewer_reviews_mix_sources_in_date_order_and_keep_local_ownership(): void
+    public function test_viewer_reviews_show_only_tmdb_reviews(): void
     {
         $user = $this->user();
         $movie = $this->movie();
@@ -344,14 +313,12 @@ class CommunityFeaturesTest extends TestCase
         ]);
         $this->mockFilm($movie);
         $response = $this->actingAs($user)->get(route('film.show', $movie));
-        $response->assertOk()->assertSee('Ulasan penonton')->assertDontSee('Ulasan dari TMDB')
-            ->assertSeeInOrder(['data-review-source="tmdb"', 'data-review-source="cinelog"'], false)
-            ->assertSee('Edit ulasan')->assertSee('Rating komunitas CINÉLOG dihitung terpisah');
+        $response->assertOk()->assertSee('Ulasan dari TMDB')->assertDontSee('Ulasan komunitas')
+            ->assertSee('Penonton TMDB')->assertDontSee('Ulasan komunitas')
+            ->assertDontSee('Edit ulasan')->assertDontSee('data-review-source="cinelog"', false);
         $items = $response->viewData('viewerReviews');
-        $this->assertSame(2, $items->total());
-        $this->assertSame(['tmdb', 'cinelog'], $items->pluck('source')->all());
+        $this->assertSame(1, $items->total());
         $this->assertSame('Penonton TMDB', $items[0]['review']->author);
-        $this->assertSame('Ulasan komunitas', $items[1]['review']->body);
         $this->assertDatabaseCount('reviews', 1);
         $this->assertSame(0.0, $movie->fresh()->avg_rating);
     }
@@ -368,15 +335,14 @@ class CommunityFeaturesTest extends TestCase
         ]);
         $this->mockFilm($movie);
         $local = $this->get(route('film.show', ['movie' => $movie, 'sumber' => 'cinelog']))->assertOk();
-        $this->assertSame(1, $local->viewData('viewerReviews')->total());
-        $local->assertDontSee('data-review-source="tmdb"', false);
+        $this->assertSame(3, $local->viewData('viewerReviews')->total());
+        $local->assertSee('data-review-source="tmdb"', false)->assertDontSee('data-review-source="cinelog"', false);
         $external = $this->get(route('film.show', ['movie' => $movie, 'sumber' => 'tmdb', 'urutan_ulasan' => 'high']))->assertOk();
-        $this->assertSame(['TMDB A', 'TMDB B', 'TMDB C'], $external->viewData('viewerReviews')->pluck('review.author')->all());
+        $this->assertSame(['TMDB A', 'TMDB B', 'TMDB C'], $external->viewData('viewerReviews')->map(fn ($item) => $item['review']->author)->all());
         $external->assertDontSee('data-review-source="cinelog"', false)->assertDontSee('Edit ulasan');
         $low = $this->get(route('film.show', ['movie' => $movie, 'urutan_ulasan' => 'low']))->assertOk();
-        $this->assertSame([2.0, 8, 9.5, null], $low->viewData('viewerReviews')->pluck('review.rating')->all());
+        $this->assertSame([2.0, 9.5, null], $low->viewData('viewerReviews')->map(fn ($item) => $item['review']->rating)->all());
         $fallback = $this->get(route('film.show', ['movie' => $movie, 'sumber' => 'invalid', 'urutan_ulasan' => 'invalid']))->assertOk();
-        $this->assertSame('all', $fallback->viewData('reviewSource'));
         $this->assertSame('new', $fallback->viewData('reviewSort'));
     }
 

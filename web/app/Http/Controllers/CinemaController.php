@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CinemaReview;
 use App\Services\CinemaRepository;
 use App\Services\CinemaRouting;
 use App\Services\ScreeningRepository;
@@ -28,6 +29,22 @@ class CinemaController extends Controller
     public function index(CinemaRepository $repo)
     {
         $cinemas = $repo->all();
+        $ratings = CinemaReview::query()
+            ->selectRaw('cinema_id, COUNT(*) as ratings_count, AVG(rating) as average_rating')
+            ->groupBy('cinema_id')
+            ->get()
+            ->keyBy('cinema_id');
+        $myRatings = auth()->check()
+            ? auth()->user()->cinemaReviews()->get()->keyBy('cinema_id')
+            : collect();
+
+        foreach ($cinemas as &$cinema) {
+            $aggregate = $ratings->get($cinema['id']);
+            $cinema['ratings_count'] = (int) ($aggregate?->ratings_count ?? 0);
+            $cinema['average_rating'] = $aggregate ? round((float) $aggregate->average_rating, 1) : null;
+            $cinema['user_rating'] = $myRatings->get($cinema['id'])?->rating;
+        }
+        unset($cinema);
 
         // Penanda terstruktur (schema.org) agar daftar ini juga terbaca mesin, sejalan dengan tema web semantik proyek.
         $jsonLd = [
@@ -49,6 +66,14 @@ class CinemaController extends Controller
                     ],
                     'geo' => ['@type' => 'GeoCoordinates', 'latitude' => $c['lat'], 'longitude' => $c['lng']],
                     'url' => $c['site'],
+                    ...($c['average_rating'] !== null ? [
+                        'aggregateRating' => [
+                            '@type' => 'AggregateRating',
+                            'ratingValue' => $c['average_rating'],
+                            'bestRating' => 5,
+                            'reviewCount' => $c['ratings_count'],
+                        ],
+                    ] : []),
                 ],
             ], $cinemas, array_keys($cinemas)),
         ];

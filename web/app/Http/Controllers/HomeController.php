@@ -13,7 +13,7 @@ class HomeController extends Controller
 {
     /**
      * Katalog + pencarian + filter genre + urutan.
-     * Daftar film datang dari Fuseki (SPARQL); rating dan jumlah ulasan dari MariaDB (dikelola trigger).
+     * Daftar dan skor film datang dari Fuseki (SPARQL); hitungan ulasan TMDB dari MariaDB.
      */
     public function index(Request $request, MovieRepository $repo)
     {
@@ -43,7 +43,7 @@ class HomeController extends Controller
         $slugs = array_column($result['items'], 'slug');
         $ratings = $slugs === []
             ? collect()
-            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
+            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug'])->keyBy('slug');
 
         $paginator = new LengthAwarePaginator($result['items'], $result['total'], $size, $page, [
             'path' => $request->url(),

@@ -7,13 +7,14 @@
     <a href="#edit-profil" class="btn btn-ghost ms-sm-auto">Edit profil</a>
 </header>
 <div class="cl-stats mb-4">
-    <div class="cl-panel"><i class="bi bi-star"></i><strong>{{ $reviewCount }}</strong><span>Film diberi rating</span></div>
+    <div class="cl-panel"><i class="bi bi-star"></i><strong>{{ $cinemaReviewCount }}</strong><span>Bioskop diberi rating</span></div>
     <div class="cl-panel"><i class="bi bi-bookmark"></i><strong>{{ $watchlistCount }}</strong><span>Dalam watchlist</span></div>
-    <div class="cl-panel"><i class="bi bi-heart"></i><strong>{{ $averageRating ? number_format($averageRating, 1) : '—' }}</strong><span>Rata-rata ratingmu / 10</span></div>
+    <div class="cl-panel"><i class="bi bi-heart"></i><strong>{{ $averageCinemaRating ? number_format($averageCinemaRating, 1) : '—' }}</strong><span>Rata-rata bioskop / 5</span></div>
 </div>
 <nav class="cl-chips mb-4" aria-label="Bagian profil">
-    <a href="#rating-saya" class="cl-chip"><i class="bi bi-chat-quote"></i> Rating & ulasan</a>
+    <a href="#booking-saya" class="cl-chip"><i class="bi bi-ticket-perforated"></i> Booking</a>
     <a href="#watchlist" class="cl-chip"><i class="bi bi-bookmark"></i> Watchlist</a>
+    <a href="{{ route('cinemas') }}" class="cl-chip"><i class="bi bi-star"></i> Beri rating bioskop</a>
 </nav>
 <section id="booking-saya" class="mb-5">
     <h2 class="cl-section-title mb-4">Film yang saya booking</h2>
@@ -72,26 +73,6 @@
         @endforelse
     </div>
     <div class="mt-3">{{ $watchlist->withQueryString()->fragment('watchlist')->links() }}</div>
-</section>
-<section id="rating-saya" class="mb-5">
-    <h2 class="cl-section-title mb-4">Rating & ulasan saya</h2>
-    @forelse ($reviews as $review)
-        <article class="cl-panel mb-3">
-            <div class="d-flex justify-content-between gap-3 mb-2">
-                <div><a class="h5 text-decoration-none" href="{{ route('film.show', $review->movie) }}">{{ $review->movie->title }}</a><small class="d-block cl-sub mt-1">{{ $review->updated_at->format('d M Y') }} @if ($review->contains_spoiler) · Mengandung spoiler @endif</small></div>
-                <span class="cl-review-score"><i class="bi bi-star-fill"></i> {{ $review->rating }}<small>/10</small></span>
-            </div>
-            @if ($review->title)<h3 class="h6 mt-3">{{ $review->title }}</h3>@endif
-            @if ($review->body)<p class="cl-review-body">{{ $review->body }}</p>@endif
-            <div class="d-flex gap-3 mt-3 align-items-center">
-                <a class="small" href="{{ route('film.show', ['movie' => $review->movie, 'edit_review' => 1]) }}#beri-ulasan">
-                <form action="{{ route('reviews.destroy', $review) }}" method="post" data-confirm="Hapus rating dan ulasan ini?">@csrf @method('delete')<input type="hidden" name="return_to" value="profile"><button type="submit" class="btn btn-link p-0 text-danger small">Hapus</button></form>
-            </div>
-        </article>
-    @empty
-        <div class="cl-panel text-center py-5"><i class="bi bi-star cl-empty-icon"></i><h3 class="h5 mt-3">Film apa yang terakhir kamu tonton?</h3><p class="cl-sub mb-0">Beri rating dari halaman film. Semua pendapatmu akan terkumpul di sini.</p></div>
-    @endforelse
-    {{ $reviews->withQueryString()->fragment('rating-saya')->links() }}
 </section>
 <section id="edit-profil" class="cl-panel cl-profile-edit">
     <h2><i class="bi bi-person-gear"></i> Edit profil</h2>

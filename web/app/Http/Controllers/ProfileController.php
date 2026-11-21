@@ -13,11 +13,10 @@ class ProfileController extends Controller
 
         return view('profile', [
             'user' => $user,
-            'reviews' => $user->reviews()->with('movie')->latest('updated_at')->paginate(8, ['*'], 'reviews_page'),
             'watchlist' => $user->watchlistMovies()->orderByPivot('added_at', 'desc')->paginate(12, ['movies.*'], 'watchlist_page'),
-            'reviewCount' => $user->reviews()->count(),
+            'cinemaReviewCount' => $user->cinemaReviews()->count(),
+            'averageCinemaRating' => $user->cinemaReviews()->avg('rating'),
             'watchlistCount' => $user->watchlistMovies()->count(),
-            'averageRating' => $user->reviews()->avg('rating'),
             'bookings' => $user->bookings()
                 ->with('seats')
                 ->latest()

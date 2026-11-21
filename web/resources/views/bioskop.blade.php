@@ -95,6 +95,9 @@
         var ROUTE_URL = @json(route('cinemas.route', [], false));
         var SCHEDULE_BASE = @json(url('/bioskop'));
         var TOKEN = @json(csrf_token());
+        var RATING_BASE = @json(url('/bioskop'));
+        var LOGIN_URL = @json(route('login', [], false));
+        var AUTHENTICATED = @json(auth()->check());
 
         var state = {
             q: '',
@@ -143,6 +146,83 @@
         }
         function scheduleLink(c) {
             return link(SCHEDULE_BASE + '/' + encodeURIComponent(c.id) + '/jadwal', 'Jadwal', 'bi-calendar-event', 'cl-bk-link');
+        }
+        function mapsLink(c) {
+            var query = encodeURIComponent(c.name + ' ' + c.address + ' ' + c.city);
+            return link('https://www.google.com/maps/search/?api=1&query=' + query, 'Google Maps', 'bi-geo-alt', 'cl-bk-link');
+        }
+        function ratingSummary(c) {
+            var row = el('div', 'cl-bk-rating-summary');
+            if (c.average_rating !== null) {
+                row.appendChild(el('strong', null, '★ ' + Number(c.average_rating).toFixed(1) + '/5'));
+                row.appendChild(el('span', 'cl-sub small', ' dari ' + c.ratings_count + ' rating pengguna'));
+            } else {
+                row.appendChild(el('span', 'cl-sub small', 'Belum ada rating pengguna'));
+            }
+            return row;
+        }
+        function ratingForm(c) {
+            if (!AUTHENTICATED) {
+                var login = new URL(LOGIN_URL, window.location.origin);
+                login.searchParams.set('next', '/bioskop#cinema-' + c.id);
+                var anchor = el('a', 'cl-bk-link');
+                anchor.href = login.pathname + login.search;
+                anchor.appendChild(el('i', 'bi bi-star'));
+                anchor.appendChild(document.createTextNode(' Masuk untuk memberi rating'));
+                return anchor;
+            }
+
+            var form = el('form', 'cl-bk-rating-form');
+            form.method = 'post';
+            form.action = RATING_BASE + '/' + encodeURIComponent(c.id) + '/rating';
+            [['_token', TOKEN], ['_method', 'PUT']].forEach(function (pair) {
+                var input = el('input');
+                input.type = 'hidden';
+                input.name = pair[0];
+                input.value = pair[1];
+                form.appendChild(input);
+            });
+            var select = el('select', 'form-select form-select-sm');
+            select.name = 'rating';
+            select.setAttribute('aria-label', 'Rating untuk ' + c.name);
+            select.required = true;
+            var prompt = el('option', null, c.user_rating ? 'Ubah rating' : 'Pilih rating');
+            prompt.value = '';
+            prompt.disabled = true;
+            prompt.selected = !c.user_rating;
+            select.appendChild(prompt);
+            for (var score = 1; score <= 5; score++) {
+                var option = el('option', null, score + ' / 5');
+                option.value = score;
+                option.selected = Number(c.user_rating) === score;
+                select.appendChild(option);
+            }
+            form.appendChild(select);
+            var submit = el('button', 'btn btn-ghost btn-sm', c.user_rating ? 'Simpan' : 'Rating');
+            submit.type = 'submit';
+            form.appendChild(submit);
+            return form;
+        }
+        function clearRatingForm(c) {
+            if (!AUTHENTICATED || !c.user_rating) return null;
+            var form = el('form', 'cl-bk-rating-clear');
+            form.method = 'post';
+            form.action = RATING_BASE + '/' + encodeURIComponent(c.id) + '/rating';
+            var message = 'Hapus rating kamu untuk ' + c.name + '?';
+            [['_token', TOKEN], ['_method', 'DELETE']].forEach(function (pair) {
+                var input = el('input');
+                input.type = 'hidden';
+                input.name = pair[0];
+                input.value = pair[1];
+                form.appendChild(input);
+            });
+            var button = el('button', 'btn btn-link btn-sm cl-sub', 'Hapus rating');
+            button.type = 'submit';
+            button.addEventListener('click', function (event) {
+                if (!window.confirm(message)) event.preventDefault();
+            });
+            form.appendChild(button);
+            return form;
         }
         function km(d) {
             return (d < 10 ? d.toFixed(1) : Math.round(d)).toString().replace('.', ',') + ' km';
@@ -354,9 +434,11 @@
             var box = el('div', 'cl-bk-pop');
             box.appendChild(el('strong', null, c.name));
             box.appendChild(el('div', 'cl-bk-pop-addr', c.address + ', ' + c.city));
+            box.appendChild(ratingSummary(c));
             var row = el('div', 'cl-bk-pop-actions');
             row.appendChild(routeButton(c));
             row.appendChild(scheduleLink(c));
+            row.appendChild(mapsLink(c));
             box.appendChild(row);
             return box;
         }
@@ -382,6 +464,7 @@
         function buildItem(c) {
             var li = el('li', 'cl-bk-item');
             li.dataset.id = c.id;
+            li.id = 'cinema-' + c.id;
             var btn = el('button', 'cl-bk-itembtn');
             btn.type = 'button';
 
@@ -399,9 +482,17 @@
             btn.addEventListener('click', function () { setActive(c.id, true); });
             li.appendChild(btn);
 
+            li.appendChild(ratingSummary(c));
+            var ratingActions = el('div', 'cl-bk-rating-actions');
+            ratingActions.appendChild(ratingForm(c));
+            var clearRating = clearRatingForm(c);
+            if (clearRating) ratingActions.appendChild(clearRating);
+            li.appendChild(ratingActions);
+
             var actions = el('div', 'cl-bk-itemactions');
             actions.appendChild(routeButton(c));
             actions.appendChild(scheduleLink(c));
+            actions.appendChild(mapsLink(c));
             li.appendChild(actions);
 
             items[c.id] = { li: li, dist: dist };
@@ -517,6 +608,15 @@ c.city).toLowerCase().indexOf(q) !== -1;
         });
 
         render();
+        var target = window.location.hash.match(/^#cinema-([A-Za-z0-9_-]+)$/);
+        if (target && items[target[1]]) {
+            state.city = '';
+            state.q = '';
+            elCity.value = '';
+            elQuery.value = '';
+            render(false);
+            setActive(target[1], false);
+        }
     })();
     </script>
 @endsection

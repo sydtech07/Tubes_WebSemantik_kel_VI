@@ -22,13 +22,13 @@ class PersonController extends Controller
         $slugs = array_column($person['films'], 'slug');
         $ratings = $slugs === []
             ? collect()
-            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug', 'avg_rating', 'reviews_count'])->keyBy('slug');
+            : Movie::whereIn('slug', $slugs)->withCount('externalReviews')->get(['slug'])->keyBy('slug');
 
         return view('person', [
-            'person'   => $person,
-            'ratings'  => $ratings,
-            'cinNs'    => rtrim(config('cinelog.base_uri'), '/') . '/ontology#',
-            'pageUrl'  => route('person.show', ['id' => $id]),
+            'person' => $person,
+            'ratings' => $ratings,
+            'cinNs' => rtrim(config('cinelog.base_uri'), '/').'/ontology#',
+            'pageUrl' => route('person.show', ['id' => $id]),
         ]);
     }
 }

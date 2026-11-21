@@ -3,7 +3,7 @@
 #   fuseki   : triple store RDF + SPARQL endpoint (penyimpanan utama data semantik)
 #   mongo    : riwayat chat chatbot (dokumen semi-terstruktur)
 #
-# Jalankan:  docker compose up -d --build
+# Jalankan seluruh layanan termasuk Laravel: docker compose --profile app up -d --build
 # Hentikan:  docker compose down            (data tetap ada)
 # Reset total (HAPUS semua data): docker compose down -v
 #

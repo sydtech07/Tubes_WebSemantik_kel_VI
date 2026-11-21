@@ -29,6 +29,11 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'user_id');
     }
 
+    public function cinemaReviews(): HasMany
+    {
+        return $this->hasMany(CinemaReview::class, 'user_id');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -38,6 +43,7 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Movie::class, 'watchlists')->withPivot('added_at');
     }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'user_id');
