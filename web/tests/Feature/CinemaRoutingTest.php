@@ -19,7 +19,9 @@ class CinemaRoutingTest extends TestCase
     private function payload(array $changes = []): array
     {
         return array_replace_recursive([
-            'cinema_id' => 'centre-point-xxi',
+            // Dataset bioskop terbaru memakai ID sumber yang baru; gunakan fixture
+            // yang benar-benar ada pada cinemas.csv / dataset RDF.
+            'cinema_id' => 'cgv-001',
             'origin' => ['lat' => 3.585, 'lng' => 98.672],
             'profile' => 'driving-car',
         ], $changes);
@@ -65,7 +67,7 @@ class CinemaRoutingTest extends TestCase
             ->assertJsonPath('steps.1.instruction', 'Belok kanan menuju Jalan Jawa')
             ->assertJsonPath('steps.2.instruction', 'Tiba di tujuan')
             ->assertDontSee('must-not-leak')->assertDontSee('routing-test-key')->assertJsonMissingPath('metadata');
-        $cinema = collect(app(CinemaRepository::class)->all())->firstWhere('id', 'centre-point-xxi');
+        $cinema = collect(app(CinemaRepository::class)->all())->firstWhere('id', 'cgv-001');
         Http::assertSent(fn (Request $request) => $request->method() === 'GET'
             && parse_url($request->url(), PHP_URL_PATH) === '/openrouteservice/v2/directions/driving-car'
             && $request->hasHeader('Authorization', 'routing-test-key')
@@ -94,11 +96,13 @@ class CinemaRoutingTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_missing_key_and_provider_errors_return_friendly_messages_without_secrets(): void
+    public function test_missing_key_falls_back_and_provider_errors_return_friendly_messages_without_secrets(): void
     {
         config(['services.openrouteservice.key' => null]);
-        $this->postJson(route('cinemas.route'), $this->payload())->assertStatus(503);
-        Http::assertNothingSent();
+        Http::fake(['valhalla1.openstreetmap.de/*' => Http::response($this->motorcycleResponse())]);
+        $this->postJson(route('cinemas.route'), $this->payload())
+            ->assertOk()
+            ->assertJsonPath('provider', 'Valhalla');
         config(['services.openrouteservice.key' => 'routing-test-key']);
         Http::fake(['api.heigit.org/*' => Http::sequence()->push(['error' => 'private upstream error'], 403)->push([], 429)->push([], 404)->push([], 500)]);
         $this->postJson(route('cinemas.route'), $this->payload())->assertStatus(503)->assertDontSee('private upstream error');

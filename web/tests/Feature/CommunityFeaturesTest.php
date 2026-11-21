@@ -6,6 +6,7 @@ use App\Models\Movie;
 use App\Models\Review;
 use App\Models\User;
 use App\Services\MovieRepository;
+use App\Services\ScreeningRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -30,6 +31,8 @@ class CommunityFeaturesTest extends TestCase
         });
         $migration = require database_path('migrations/2026_11_13_000001_add_last_seen_at_to_users.php');
         $migration->up();
+        $bookingMigration = require database_path('migrations/2026_11_19_000001_create_bookings_tables.php');
+        $bookingMigration->up();
         Schema::create('movies', function (Blueprint $table) {
             $table->id();
             $table->integer('tmdb_id')->unique();
@@ -94,7 +97,27 @@ class CommunityFeaturesTest extends TestCase
                 'descId' => 'Sinopsis film.', 'descEn' => null, 'lang' => 'id', 'tagline' => null,
                 'imdb' => null, 'wikidata' => null, 'budget' => 0, 'revenue' => 0,
             ]);
+            $mock->shouldReceive('recommendations')->with($movie->slug)->andReturn([]);
         });
+        $this->mock(ScreeningRepository::class, function ($mock) use ($movie) {
+            $mock->shouldReceive('cinemasForMovie')->with($movie->slug)->andReturn([]);
+        });
+    }
+
+    private function eligibleBooking(User $user, Movie $movie): void
+    {
+        DB::table('bookings')->insert([
+            'user_id' => $user->id,
+            'screening_iri' => 'http://example.test/screening/'.$movie->id,
+            'movie_slug' => $movie->slug,
+            'cinema_id' => 'test-cinema',
+            'show_start' => now()->subHour(),
+            'seat_count' => 1,
+            'total_amount' => 25000,
+            'status' => 'paid',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_guest_can_view_film_but_interactions_require_login(): void
@@ -160,6 +183,7 @@ class CommunityFeaturesTest extends TestCase
     {
         $user = $this->user();
         $movie = $this->movie();
+        $this->eligibleBooking($user, $movie);
         $this->actingAs($user)->put(route('reviews.store', $movie), ['rating' => 8])->assertSessionHasNoErrors();
         $this->put(route('reviews.store', $movie), ['rating' => 9, 'body' => 'Bagus!', 'contains_spoiler' => '1'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('reviews', 1);
@@ -173,6 +197,7 @@ class CommunityFeaturesTest extends TestCase
         $owner = $this->user();
         $other = $this->user('other@example.test');
         $movie = $this->movie();
+        $this->eligibleBooking($other, $movie);
         $review = $owner->reviews()->create(['movie_id' => $movie->id, 'rating' => 7]);
         $this->actingAs($other)->put(route('reviews.store', $movie), ['rating' => 11])->assertSessionHasErrors('rating');
         $this->put(route('reviews.store', $movie), ['rating' => '8.5'])->assertSessionHasErrors('rating');
@@ -294,8 +319,9 @@ class CommunityFeaturesTest extends TestCase
         $user = $this->user();
         $movie = $this->movie();
         $user->reviews()->create(['movie_id' => $movie->id, 'rating' => 8, 'body' => '<img src=x onerror=alert(1)>', 'contains_spoiler' => true]);
+        $this->eligibleBooking($user, $movie);
         $this->mockFilm($movie);
-        $this->actingAs($user)->get(route('film.show', $movie))->assertOk()->assertSee('Perbarui rating dan ulasanmu')->assertSee('Mengandung spoiler')->assertDontSee('<img src=x onerror=alert(1)>', false);
+        $this->actingAs($user)->get(route('film.show', $movie))->assertOk()->assertSee('Edit rating & ulasan')->assertSee('Mengandung spoiler')->assertDontSee('<img src=x onerror=alert(1)>', false);
     }
 
     public function test_admin_command_only_promotes_existing_accounts(): void

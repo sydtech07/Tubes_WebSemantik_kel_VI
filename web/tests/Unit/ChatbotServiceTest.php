@@ -41,6 +41,6 @@ class ChatbotServiceTest extends TestCase
 
         $reply = app(ChatbotService::class)->askMovieBot('Rekomendasi film?');
 
-        $this->assertSame('Maaf, layanan chatbot sedang bermasalah. Coba lagi nanti.', $reply);
+        $this->assertSame('Saya belum menemukan data yang cocok di knowledge graph CINÉLOG. Coba sebutkan judul film, nama aktor, atau genre yang lebih spesifik.', $reply);
     }
 }
