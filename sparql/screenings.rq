@@ -1,0 +1,23 @@
+PREFIX cin: <http://localhost:8000/ontology#>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?start ?movieTitle ?cinemaName ?auditoriumName ?format ?status ?price ?currency
+WHERE {
+  ?screening a cin:ScreeningEvent ;
+             schema:workPresented ?movie ;
+             schema:startDate ?start ;
+             cin:heldAtCinema ?cinema .
+  ?movie schema:name ?movieTitle .
+  ?cinema schema:name ?cinemaName .
+  OPTIONAL {
+    ?screening cin:screenedInAuditorium ?auditorium .
+    ?auditorium schema:name ?auditoriumName .
+  }
+  OPTIONAL { ?screening schema:videoFormat ?format }
+  OPTIONAL { ?screening cin:screeningStatus ?status }
+  OPTIONAL {
+    ?screening schema:offers ?offer .
+    ?offer schema:price ?price ; schema:priceCurrency ?currency .
+  }
+}
+ORDER BY ?start

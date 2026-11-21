@@ -27,7 +27,8 @@ import requests
 from rdflib import Graph
 
 from common import ROOT, USER_AGENT, setup_logging
-from rdfcommon import BASE_URI, DATA_TTL, FUSEKI_URL, load_ontology, read_csv
+from rdfcommon import (BASE_URI, DATA_TTL, FUSEKI_URL, load_ontology, read_csv,
+                       read_optional_csv, read_cinemas)
 
 log = setup_logging("validate")
 
@@ -105,7 +106,16 @@ def load_facts() -> dict:
     by_movie_genres: dict[str, set] = defaultdict(set)
     for r in read_csv("movie_genres.csv"):
         by_movie_genres[r["movie_tmdb_id"]].add(genres[r["genre_tmdb_id"]])
-    return {"movies": movies, "genres": genres, "people": people, "credits": credits, "mg": by_movie_genres}
+    return {
+        "movies": movies,
+        "genres": genres,
+        "people": people,
+        "credits": credits,
+        "mg": by_movie_genres,
+        "cinemas": read_cinemas(),
+        "auditoriums": read_optional_csv("auditoriums.csv"),
+        "screenings": read_optional_csv("screenings.csv"),
+    }
 
 
 def build_cases(f: dict) -> list[dict]:
@@ -213,6 +223,53 @@ def build_cases(f: dict) -> list[dict]:
     add("Hitung film yang BELUM tertaut ke Wikidata",
         "SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie . FILTER NOT EXISTS { ?m owl:sameAs ?w } }",
         len(movies) - linked, lambda rows, e: n(rows) == e)
+
+    # ---- Fase 1: knowledge graph bioskop ----
+    cinemas = f["cinemas"]
+    auditoriums = f["auditoriums"]
+    screenings = f["screenings"]
+    valid_coordinate_count = 0
+    for cinema in cinemas:
+        try:
+            lat, lng = float(cinema.get("lat", "")), float(cinema.get("lng", ""))
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                valid_coordinate_count += 1
+        except (TypeError, ValueError):
+            pass
+
+    add("Hitung seluruh bioskop",
+        "SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema }",
+        len(cinemas), lambda rows, e: n(rows) == e)
+
+    add("Hitung bioskop dengan koordinat geografis valid",
+        "SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; schema:geo ?geo . "
+        "?geo a cin:GeoCoordinates ; schema:latitude ?lat ; schema:longitude ?lng }",
+        valid_coordinate_count, lambda rows, e: n(rows) == e)
+
+    chain_counts = Counter(str(c.get("chain", "")) for c in cinemas if c.get("chain"))
+    add("Distribusi bioskop berdasarkan jaringan",
+        "SELECT ?chain (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; "
+        "cin:cinemaChain ?chain } GROUP BY ?chain",
+        dict(chain_counts),
+        lambda rows, e: {r["chain"]: int(r["n"]) for r in rows} == e)
+
+    add("Hitung seluruh auditorium",
+        "SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium }",
+        len(auditoriums), lambda rows, e: n(rows) == e)
+
+    add("Auditorium terhubung ke bioskop induknya",
+        "SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium ; "
+        "cin:partOfCinema ?cinema }",
+        len(auditoriums), lambda rows, e: n(rows) == e)
+
+    add("Hitung seluruh jadwal tayang",
+        "SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent }",
+        len(screenings), lambda rows, e: n(rows) == e)
+
+    add("Jadwal tayang terhubung ke film, bioskop, dan waktu mulai",
+        "SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent ; "
+        "schema:workPresented ?movie ; cin:heldAtCinema ?cinema ; schema:startDate ?start }",
+        len(screenings), lambda rows, e: n(rows) == e)
 
     return cases
 

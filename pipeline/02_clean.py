@@ -18,6 +18,7 @@ import json
 import re
 import unicodedata
 from collections import Counter
+from datetime import date, timedelta
 
 from common import CLEAN_DIR, RAW_DIR, setup_logging
 
@@ -113,10 +114,18 @@ def write_csv(name: str, columns: list[str], rows: list[dict]) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--start", default="2026-01-01")
-    ap.add_argument("--end", default="2026-09-30")
+    today = date.today()
+    ap.add_argument("--start", default=None, help="tanggal awal YYYY-MM-DD; default 365 hari terakhir")
+    ap.add_argument("--end", default=None, help="tanggal akhir YYYY-MM-DD; default hari ini")
+    ap.add_argument("--latest-days", type=int, default=365, help="rentang film terbaru jika --start/--end tidak diberikan (default 365)")
     ap.add_argument("--max", type=int, default=500, help="jumlah film akhir (default 500)")
     args = ap.parse_args()
+    if args.latest_days < 1 or args.latest_days > 3650:
+        raise SystemExit("--latest-days harus 1..3650")
+    start = args.start or (today - timedelta(days=args.latest_days)).isoformat()
+    end = args.end or today.isoformat()
+    if start > end:
+        raise SystemExit("--start tidak boleh lebih besar dari --end")
 
     files = sorted(RAW_DIR.glob("movie_*.json"))
     if not files:
@@ -130,14 +139,14 @@ def main() -> None:
         if raw.get("id") in seen_ids:
             dropped["duplikat"] += 1
             continue
-        reason, row = evaluate(raw, args.start, args.end)
+        reason, row = evaluate(raw, start, end)
         if reason:
             dropped[reason] += 1
             continue
         seen_ids.add(raw["id"])
         passed.append((raw, row))
 
-    passed.sort(key=lambda pair: float(pair[1]["tmdb_popularity"] or 0), reverse=True)
+    passed.sort(key=lambda pair: (pair[1]["release_date"], float(pair[1]["tmdb_popularity"] or 0)), reverse=True)
     trimmed = max(0, len(passed) - args.max)
     passed = passed[: args.max]
 

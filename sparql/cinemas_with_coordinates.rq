@@ -1,0 +1,16 @@
+PREFIX cin: <http://localhost:8000/ontology#>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?cinema ?name ?chain ?city ?lat ?lng ?coordinateSource
+WHERE {
+  ?cinema a cin:Cinema ;
+          schema:name ?name ;
+          cin:cinemaChain ?chain ;
+          cin:city ?city ;
+          schema:geo ?geo .
+  ?geo a cin:GeoCoordinates ;
+       schema:latitude ?lat ;
+       schema:longitude ?lng .
+  OPTIONAL { ?geo cin:coordinateSource ?coordinateSource }
+}
+ORDER BY ?city ?name

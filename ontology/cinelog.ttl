@@ -123,3 +123,101 @@ cin:knownForDepartment a owl:DatatypeProperty ;
     rdfs:label "dikenal di bidang"@id ;
     rdfs:domain cin:Person ;
     rdfs:range xsd:string .
+
+# ----- Ekstensi bioskop, auditorium, jadwal tayang, dan koordinat -------------
+# Menggunakan padanan Schema.org agar data dapat dipahami oleh aplikasi lain.
+
+cin:Cinema a owl:Class ;
+    rdfs:subClassOf schema:MovieTheater ;
+    rdfs:label "Bioskop"@id , "Cinema"@en ;
+    rdfs:comment "Cabang atau lokasi fisik tempat pemutaran film berlangsung."@id .
+
+cin:Auditorium a owl:Class ;
+    rdfs:subClassOf schema:Place ;
+    rdfs:label "Auditorium"@id , "Auditorium"@en ;
+    rdfs:comment "Ruang atau studio pemutaran film yang berada di dalam sebuah bioskop."@id .
+
+cin:ScreeningEvent a owl:Class ;
+    rdfs:subClassOf schema:ScreeningEvent ;
+    rdfs:label "Jadwal tayang"@id , "Screening event"@en ;
+    rdfs:comment "Peristiwa pemutaran film pada tanggal dan waktu tertentu di bioskop."@id .
+
+cin:GeoCoordinates a owl:Class ;
+    rdfs:subClassOf schema:GeoCoordinates ;
+    rdfs:label "Koordinat geografis"@id , "Geographic coordinates"@en ;
+    rdfs:comment "Titik koordinat geografis bioskop dalam sistem WGS 84."@id .
+
+# Relasi bioskop dan auditorium
+cin:hasAuditorium a owl:ObjectProperty ;
+    rdfs:label "memiliki auditorium"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range cin:Auditorium ;
+    owl:inverseOf cin:partOfCinema .
+
+cin:partOfCinema a owl:ObjectProperty ;
+    rdfs:label "bagian dari bioskop"@id ;
+    rdfs:domain cin:Auditorium ;
+    rdfs:range cin:Cinema ;
+    rdfs:subPropertyOf schema:containedInPlace .
+
+# Relasi bioskop dan jadwal tayang
+cin:hostsScreening a owl:ObjectProperty ;
+    rdfs:label "menyelenggarakan pemutaran"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range cin:ScreeningEvent ;
+    owl:inverseOf cin:heldAtCinema .
+
+cin:heldAtCinema a owl:ObjectProperty ;
+    rdfs:label "berlangsung di bioskop"@id ;
+    rdfs:domain cin:ScreeningEvent ;
+    rdfs:range cin:Cinema .
+
+cin:screenedInAuditorium a owl:ObjectProperty ;
+    rdfs:label "ditayangkan di auditorium"@id ;
+    rdfs:domain cin:ScreeningEvent ;
+    rdfs:range cin:Auditorium .
+
+# Relasi bioskop dan koordinat
+cin:hasGeoCoordinates a owl:ObjectProperty ;
+    rdfs:label "memiliki koordinat geografis"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range cin:GeoCoordinates ;
+    rdfs:subPropertyOf schema:geo .
+
+# Properti data bioskop
+cin:cinemaChain a owl:DatatypeProperty ;
+    rdfs:label "jaringan bioskop"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range xsd:string .
+
+cin:city a owl:DatatypeProperty ;
+    rdfs:label "kota"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range xsd:string .
+
+cin:district a owl:DatatypeProperty ;
+    rdfs:label "kecamatan"@id ;
+    rdfs:domain cin:Cinema ;
+    rdfs:range xsd:string .
+
+cin:coordinateSource a owl:DatatypeProperty ;
+    rdfs:label "sumber atau tingkat kepastian koordinat"@id ;
+    rdfs:domain cin:GeoCoordinates ;
+    rdfs:range xsd:string .
+
+# Properti data auditorium
+cin:screenNumber a owl:DatatypeProperty ;
+    rdfs:label "nomor layar"@id ;
+    rdfs:domain cin:Auditorium ;
+    rdfs:range xsd:positiveInteger .
+
+cin:auditoriumFormat a owl:DatatypeProperty ;
+    rdfs:label "format auditorium"@id ;
+    rdfs:domain cin:Auditorium ;
+    rdfs:range xsd:string .
+
+# Properti tambahan jadwal tayang
+cin:screeningStatus a owl:DatatypeProperty ;
+    rdfs:label "status jadwal tayang"@id ;
+    rdfs:domain cin:ScreeningEvent ;
+    rdfs:range xsd:string .

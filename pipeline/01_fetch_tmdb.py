@@ -1,7 +1,7 @@
 """Langkah 1 - Ambil data film dari API resmi TMDB (bukan scraping HTML).
 
 Alur:
-  A. /discover/movie  -> daftar kandidat film rilis 2026-01-01 s.d. 2026-09-30, urut popularitas
+  A. /discover/movie  -> daftar kandidat film dalam rentang tanggal, default diurutkan dari tanggal rilis terbaru
   B. /movie/{id}?append_to_response=credits,external_ids  -> detail + pemeran/kru + ID eksternal (IMDb, Wikidata)
   C. /movie/{id}?language=id-ID -> sinopsis bahasa Indonesia (jika tersedia)
 
@@ -10,21 +10,22 @@ Menjalankan ulang TIDAK mengunduh ulang film yang sudah ada, kecuali memakai --r
 
 Contoh:
   python pipeline/01_fetch_tmdb.py --sample 20      # uji cepat 20 film
-  python pipeline/01_fetch_tmdb.py                   # target penuh (default 500 film bersih)
+  python pipeline/01_fetch_tmdb.py                   # default: 365 hari terakhir, 500 film bersih
+  python pipeline/01_fetch_tmdb.py --latest-days 180 # fokus 180 hari terakhir
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from common import RAW_DIR, TmdbClient, setup_logging
 
 log = setup_logging("fetch")
 
 
-def discover_candidates(client: TmdbClient, start: str, end: str, want: int, min_votes: int) -> list[dict]:
+def discover_candidates(client: TmdbClient, start: str, end: str, want: int, min_votes: int, sort_by: str) -> list[dict]:
     """Kumpulkan sampai `want` kandidat film. Batas TMDB: maksimal 500 halaman x 20 hasil."""
     found: dict[int, dict] = {}
     page = 1
@@ -34,7 +35,7 @@ def discover_candidates(client: TmdbClient, start: str, end: str, want: int, min
             **{
                 "primary_release_date.gte": start,
                 "primary_release_date.lte": end,
-                "sort_by": "popularity.desc",
+                "sort_by": sort_by,
                 "include_adult": "false",
                 "include_video": "false",
                 "vote_count.gte": min_votes,
@@ -68,7 +69,8 @@ def save_json(path, payload) -> None:
 
 
 def fetch_details(client: TmdbClient, movie_id: int, with_id: bool) -> dict | None:
-    detail = client.get(f"movie/{movie_id}", append_to_response="credits,external_ids,keywords", language="en-US")    if detail is None:
+    detail = client.get(f"movie/{movie_id}", append_to_response="credits,external_ids,keywords", language="en-US")
+    if detail is None:
         return None
     if with_id:
         tr = client.get(f"movie/{movie_id}", language="id-ID") or {}
@@ -79,8 +81,11 @@ def fetch_details(client: TmdbClient, movie_id: int, with_id: bool) -> dict | No
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--start", default="2026-01-01")
-    ap.add_argument("--end", default="2026-09-30")
+    today = date.today()
+    ap.add_argument("--start", default=None, help="tanggal awal YYYY-MM-DD; default 365 hari terakhir")
+    ap.add_argument("--end", default=None, help="tanggal akhir YYYY-MM-DD; default hari ini")
+    ap.add_argument("--latest-days", type=int, default=365, help="rentang film terbaru jika --start/--end tidak diberikan (default 365)")
+    ap.add_argument("--sort-by", default="primary_release_date.desc", help="urutan discover TMDB (default film terbaru dulu)")
     ap.add_argument("--target", type=int, default=500, help="jumlah film bersih yang diinginkan akhirnya")
     ap.add_argument("--buffer", type=float, default=1.4,
                     help="pengali kandidat; sebagian film akan gugur saat pembersihan (default 1.4)")
@@ -89,12 +94,18 @@ def main() -> None:
     ap.add_argument("--refresh", action="store_true", help="unduh ulang walau sudah ada di cache")
     ap.add_argument("--no-id", action="store_true", help="lewati sinopsis bahasa Indonesia")
     args = ap.parse_args()
+    if args.latest_days < 1 or args.latest_days > 3650:
+        raise SystemExit("--latest-days harus 1..3650")
+    start = args.start or (today - timedelta(days=args.latest_days)).isoformat()
+    end = args.end or today.isoformat()
+    if start > end:
+        raise SystemExit("--start tidak boleh lebih besar dari --end")
 
     client = TmdbClient(log)
     want = args.sample if args.sample else int(args.target * args.buffer)
-    log.info("Mencari %d kandidat film %s s.d. %s", want, args.start, args.end)
+    log.info("Mencari %d kandidat film %s s.d. %s (sort=%s)", want, start, end, args.sort_by)
 
-    candidates = discover_candidates(client, args.start, args.end, want, args.min_votes)
+    candidates = discover_candidates(client, start, end, want, args.min_votes, args.sort_by)
     save_json(RAW_DIR / "_discover.json", candidates)
     log.info("Kandidat terkumpul: %d", len(candidates))
 

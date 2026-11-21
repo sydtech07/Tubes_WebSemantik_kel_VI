@@ -19,6 +19,13 @@
 | 13 | Tampilkan film bergenre "Action" sekaligus "Thriller" (kombinasi paling umum) | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m schema:genre ?g1 , ?g2 . ?g1 rdfs:label "Action"@en . ?g2 rdfs:label "Thriller"@en }` | 62 | 62 | Valid |
 | 14 | Hitung film yang tertaut ke Wikidata (owl:sameAs) | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie ; owl:sameAs ?w . FILTER(STRSTARTS(STR(?w), "http://www.wikidata.org/entity/Q")) }` | 451 | 451 | Valid |
 | 15 | Hitung film yang BELUM tertaut ke Wikidata | `SELECT (COUNT(DISTINCT ?m) AS ?n) WHERE { ?m a cin:Movie . FILTER NOT EXISTS { ?m owl:sameAs ?w } }` | 49 | 49 | Valid |
+| 16 | Hitung seluruh bioskop | `SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema }` | 13 | 13 | Valid |
+| 17 | Hitung bioskop dengan koordinat geografis valid | `SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; schema:geo ?geo . ?geo a cin:GeoCoordinates ; schema:latitude ?lat ; schema:longitude ?lng }` | 13 | 13 | Valid |
+| 18 | Distribusi bioskop berdasarkan jaringan | `SELECT ?chain (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; cin:cinemaChain ?chain } GROUP BY ?chain` | {'XXI': 8, 'Cinépolis': 4, 'CGV': 1} | 3 baris hasil | Valid |
+| 19 | Hitung seluruh auditorium | `SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium }` | 26 | 26 | Valid |
+| 20 | Auditorium terhubung ke bioskop induknya | `SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium ; cin:partOfCinema ?cinema }` | 26 | 26 | Valid |
+| 21 | Hitung seluruh jadwal tayang | `SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent }` | 728 | 728 | Valid |
+| 22 | Jadwal tayang terhubung ke film, bioskop, dan waktu mulai | `SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent ; schema:workPresented ?movie ; cin:heldAtCinema ?cinema ; schema:startDate ?start }` | 728 | 728 | Valid |
 
 ## Tabel B. Hasil pengujian prototipe web server Jena Fuseki
 
@@ -27,5 +34,5 @@
 | 1 | Infrastruktur | Menjalankan web server (ping) | Berhasil |  |
 | 2 | Operasi triple store | Penambahan triple | Berhasil |  |
 | 3 | Operasi triple store | Penghapusan triple | Berhasil |  |
-| 4 | Operasi query | Melakukan query (hitung seluruh triple) | Berhasil | 139249 triple |
-| 5 | Validasi query | Jumlah triple di Fuseki = jumlah triple berkas lokal | Berhasil | Fuseki 139249 vs lokal 139249 |
+| 4 | Operasi query | Melakukan query (hitung seluruh triple) | Berhasil | 152208 triple |
+| 5 | Validasi query | Jumlah triple di Fuseki = jumlah triple berkas lokal | Berhasil | Fuseki 152208 vs lokal 152208 |

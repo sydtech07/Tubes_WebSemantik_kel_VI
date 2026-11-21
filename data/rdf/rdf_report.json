@@ -1,11 +1,15 @@
 {
   "base_uri": "http://localhost:8000/",
-  "jumlah_triple": 139158,
+  "jumlah_triple": 412377,
   "film": 500,
-  "orang": 7807,
+  "orang": 7594,
   "genre": 19,
-  "keyword": 2342,
-  "peran_pemeran": 6952,
-  "film_tertaut_wikidata": 451,
+  "keyword": 1934,
+  "peran_pemeran": 6717,
+  "bioskop": 77,
+  "koordinat_bioskop": 77,
+  "auditorium": 382,
+  "jadwal_tayang": 16221,
+  "film_tertaut_wikidata": 417,
   "dilewati": {}
 }

@@ -1,0 +1,12 @@
+PREFIX cin: <http://localhost:8000/ontology#>
+PREFIX schema: <https://schema.org/>
+
+SELECT ?cinemaName ?auditoriumName ?screenNumber ?format ?capacity
+WHERE {
+  ?cinema a cin:Cinema ; schema:name ?cinemaName ; cin:hasAuditorium ?auditorium .
+  ?auditorium a cin:Auditorium ; schema:name ?auditoriumName .
+  OPTIONAL { ?auditorium cin:screenNumber ?screenNumber }
+  OPTIONAL { ?auditorium cin:auditoriumFormat ?format }
+  OPTIONAL { ?auditorium schema:maximumAttendeeCapacity ?capacity }
+}
+ORDER BY ?cinemaName ?screenNumber

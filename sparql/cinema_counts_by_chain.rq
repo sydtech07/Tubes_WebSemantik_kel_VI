@@ -1,0 +1,6 @@
+PREFIX cin: <http://localhost:8000/ontology#>
+
+SELECT ?chain (COUNT(DISTINCT ?cinema) AS ?total)
+WHERE { ?cinema a cin:Cinema ; cin:cinemaChain ?chain }
+GROUP BY ?chain
+ORDER BY DESC(?total)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import os
 import re
 
@@ -24,6 +25,7 @@ RDF_DIR = ROOT / "data" / "rdf"
 RDF_DIR.mkdir(parents=True, exist_ok=True)
 ONTOLOGY_FILE = ROOT / "ontology" / "cinelog.ttl"
 DATA_TTL = RDF_DIR / "cinelog-data.ttl"
+CINEMA_CSV = CLEAN_DIR / "cinemas.csv"
 
 
 def cin_ns(base: str = BASE_URI) -> Namespace:
@@ -39,8 +41,47 @@ def read_csv(name: str) -> list[dict]:
     if not path.exists():
         raise SystemExit(f"{path} tidak ada. Jalankan 02_clean.py dulu.")
     with open(path, encoding="utf-8-sig", newline="") as fh:
-        return [{k: _CONTROL.sub("", v or "") for k, v in row.items()} for row in csv.DictReader(fh)]
+        return [{k: _CONTROL.sub("", v or "") for k, v in row.items() if k is not None} for row in csv.DictReader(fh)]
 
+
+def read_optional_csv(name: str) -> list[dict]:
+    """Baca CSV tambahan; file dengan header saja dianggap sebagai dataset kosong."""
+    path = CLEAN_DIR / name
+    if not path.exists():
+        return []
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        return [{k: _CONTROL.sub("", v or "") for k, v in row.items() if k is not None} for row in csv.DictReader(fh)]
+
+
+def read_cinemas() -> list[dict]:
+    """Baca data bioskop dari data/clean/cinemas.csv."""
+    path = CLEAN_DIR / "cinemas.csv"
+
+    if not path.exists():
+        raise SystemExit(
+            f"{path} tidak ditemukan. "
+            "Pastikan cinemas.csv berada di data/clean/."
+        )
+
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        rows = csv.DictReader(fh)
+
+        cinemas = []
+
+        for row in rows:
+            cinemas.append({
+                "id": row.get("cinema_id", "").strip(),
+                "name": row.get("name", "").strip(),
+                "chain": row.get("brand", "").strip(),
+                "city": row.get("address_locality", "").strip(),
+                "district": "",
+                "address": row.get("street_address", "").strip(),
+                "lat": row.get("latitude", "").strip(),
+                "lng": row.get("longitude", "").strip(),
+                "site": row.get("website", "").strip(),
+            })
+
+    return cinemas
 
 def load_ontology(base: str = BASE_URI) -> Graph:
     """Baca ontology/cinelog.ttl; ganti alamat dasar bawaan bila BASE_URI berbeda."""

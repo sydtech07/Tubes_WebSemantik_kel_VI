@@ -119,6 +119,62 @@
       "diharapkan": "49",
       "aktual": "49",
       "valid": true
+    },
+    {
+      "no": 16,
+      "uji_kasus": "Hitung seluruh bioskop",
+      "query": "SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema }",
+      "diharapkan": "13",
+      "aktual": "13",
+      "valid": true
+    },
+    {
+      "no": 17,
+      "uji_kasus": "Hitung bioskop dengan koordinat geografis valid",
+      "query": "SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; schema:geo ?geo . ?geo a cin:GeoCoordinates ; schema:latitude ?lat ; schema:longitude ?lng }",
+      "diharapkan": "13",
+      "aktual": "13",
+      "valid": true
+    },
+    {
+      "no": 18,
+      "uji_kasus": "Distribusi bioskop berdasarkan jaringan",
+      "query": "SELECT ?chain (COUNT(DISTINCT ?c) AS ?n) WHERE { ?c a cin:Cinema ; cin:cinemaChain ?chain } GROUP BY ?chain",
+      "diharapkan": "{'XXI': 8, 'Cinépolis': 4, 'CGV': 1}",
+      "aktual": "3 baris hasil",
+      "valid": true
+    },
+    {
+      "no": 19,
+      "uji_kasus": "Hitung seluruh auditorium",
+      "query": "SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium }",
+      "diharapkan": "26",
+      "aktual": "26",
+      "valid": true
+    },
+    {
+      "no": 20,
+      "uji_kasus": "Auditorium terhubung ke bioskop induknya",
+      "query": "SELECT (COUNT(DISTINCT ?a) AS ?n) WHERE { ?a a cin:Auditorium ; cin:partOfCinema ?cinema }",
+      "diharapkan": "26",
+      "aktual": "26",
+      "valid": true
+    },
+    {
+      "no": 21,
+      "uji_kasus": "Hitung seluruh jadwal tayang",
+      "query": "SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent }",
+      "diharapkan": "728",
+      "aktual": "728",
+      "valid": true
+    },
+    {
+      "no": 22,
+      "uji_kasus": "Jadwal tayang terhubung ke film, bioskop, dan waktu mulai",
+      "query": "SELECT (COUNT(DISTINCT ?s) AS ?n) WHERE { ?s a cin:ScreeningEvent ; schema:workPresented ?movie ; cin:heldAtCinema ?cinema ; schema:startDate ?start }",
+      "diharapkan": "728",
+      "aktual": "728",
+      "valid": true
     }
   ],
   "infrastruktur": [
@@ -144,13 +200,13 @@
       "aspect": "Operasi query",
       "test": "Melakukan query (hitung seluruh triple)",
       "status": "Berhasil",
-      "detail": "139249 triple"
+      "detail": "152208 triple"
     },
     {
       "aspect": "Validasi query",
       "test": "Jumlah triple di Fuseki = jumlah triple berkas lokal",
       "status": "Berhasil",
-      "detail": "Fuseki 139249 vs lokal 139249"
+      "detail": "Fuseki 152208 vs lokal 152208"
     }
   ]
 }
