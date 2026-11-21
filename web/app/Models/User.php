@@ -38,4 +38,8 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Movie::class, 'watchlists')->withPivot('added_at');
     }
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'user_id');
+    }
 }

@@ -46,7 +46,7 @@ class GraphSearch
             return $pos === 0 ? 0 : 2;                  // "spiderman" cocok dengan "Spider-Man"
         }
         if (count($tokens) > 1) {
-            $words = explode(' ', $norm);
+            $words = array_values(array_filter(explode(' ', $norm), static fn (string $word) => $word !== ''));
             foreach ($tokens as $t) {
                 $found = false;
                 foreach ($words as $w) {
@@ -106,7 +106,7 @@ class GraphSearch
 
         $folded = $this->fold($q);
         $compact = str_replace(' ', '', $folded);
-        $tokens = $folded === '' ? [] : explode(' ', $folded);
+        $tokens = $folded === '' ? [] : array_values(array_filter(explode(' ', $folded), static fn (string $token) => $token !== ''));
         if (mb_strlen($compact) >= 2) {
             $extra = 0;
             foreach ($this->vocabulary() as [, $label, , $norm, , $comp]) {
@@ -173,7 +173,7 @@ class GraphSearch
             return [];
         }
 
-        $tokens = explode(' ', $n);
+        $tokens = array_values(array_filter(explode(' ', $n), static fn (string $token) => $token !== ''));
         $hits = ['film' => [], 'orang' => [], 'genre' => []];
         foreach ($this->vocabulary() as [$kind, $label, $key, $norm, $pop, $comp]) {
             $rank = $this->rank($norm, $comp, $n, $c, $tokens);

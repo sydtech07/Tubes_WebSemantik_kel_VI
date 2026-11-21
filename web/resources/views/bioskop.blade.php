@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Bioskop di Sumatera Utara - CINÉLOG')
-@section('description', 'Peta dan daftar bioskop XXI, CGV, dan Cinépolis di Medan dan Sumatera Utara, lengkap dengan alamat dan petunjuk arah.')
+@section('description', 'Peta dan daftar bioskop di Medan dan Sumatera Utara, lengkap dengan alamat dan petunjuk arah.')
 
 @push('head')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
@@ -11,7 +11,7 @@
 @section('content')
     <h1 class="cl-section-title">Bioskop di Sumatera Utara</h1>
     <p class="cl-sub mt-2 mb-4">
-        <span id="bkCount">{{ count($cinemas) }}</span> bioskop XXI, CGV, dan Cinépolis, berpusat di Kota Medan.
+        <span id="bkCount">{{ count($cinemas) }}</span> bioskop di Medan dan Sumatera Utara.
         Klik bioskop untuk melihatnya di peta.
     </p>
 
@@ -22,17 +22,11 @@
             <input id="bkQuery" type="search" class="form-control" placeholder="Cari nama bioskop, mal, atau jalan" aria-label="Cari bioskop" autocomplete="off">
         </div>
         <select id="bkCity" class="form-select cl-bk-select" aria-label="Kota atau kabupaten">
-            <option value="">Semua kota di Sumut</option>
+            <option value="">Semua Kota</option>
             @foreach ($cities as $city => $n)
                 <option value="{{ $city }}" @selected($city === 'Medan')>{{ $city }} ({{ $n }})</option>
             @endforeach
         </select>
-        <div class="cl-bk-chips" role="group" aria-label="Jaringan bioskop">
-            <button type="button" class="cl-rv-chip is-active" data-chain="" aria-pressed="true">Semua</button>
-            <button type="button" class="cl-rv-chip" data-chain="XXI" aria-pressed="false"><i class="cl-bk-dot cl-chain-xxi"></i> XXI</button>
-            <button type="button" class="cl-rv-chip" data-chain="CGV" aria-pressed="false"><i class="cl-bk-dot cl-chain-cgv"></i> CGV</button>
-            <button type="button" class="cl-rv-chip" data-chain="Cinépolis" aria-pressed="false"><i class="cl-bk-dot cl-chain-cinepolis"></i> Cinépolis</button>
-        </div>
         <button type="button" id="bkNear" class="btn btn-ghost btn-sm"><i class="bi bi-crosshair"></i> Dekat saya</button>
     </div>
     <p id="bkMsg" class="cl-sub small mt-2 mb-0" role="status" hidden></p>
@@ -76,18 +70,13 @@
         Posisi pada peta berupa perkiraan dan bisa meleset beberapa ratus meter
         (bioskop bertanda <span class="cl-bk-est">perkiraan</span> belum dicek ke lokasi).
         Tombol <strong>Rute</strong> menghitung perjalanan ke koordinat bioskop pada peta ini. Perhatikan jalan akses dan pintu masuk mal saat tiba.
-        Jadwal tayang dan harga tiket ada di situs resmi tiap jaringan. Data tidak terhubung langsung ke XXI, CGV, atau Cinépolis.
+        Jadwal tayang dan harga tiket dapat diperiksa di situs resmi bioskop masing-masing.
     </p>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     (function () {
         var DATA = @json($cinemas);
-        var CHAIN = {
-            'XXI':       { cls: 'cl-chain-xxi',       label: 'XXI',  color: '#f5a524' },
-            'CGV':       { cls: 'cl-chain-cgv',       label: 'CGV',  color: '#ff4d4d' },
-            'Cinépolis': { cls: 'cl-chain-cinepolis', label: 'CP',   color: '#3b8cff' }
-        };
 
         var elList = document.getElementById('bkList');
         var elCount = document.getElementById('bkCount');
@@ -104,10 +93,15 @@
         var elRouteResult = document.getElementById('bkRouteResult');
         var elTravel = document.getElementById('bkTravel');
         var ROUTE_URL = @json(route('cinemas.route', [], false));
+        var SCHEDULE_BASE = @json(url('/bioskop'));
         var TOKEN = @json(csrf_token());
-        var chips = [].slice.call(document.querySelectorAll('[data-chain]'));
 
-        var state = { q: '', city: elCity.value, chain: '', user: null, active: null };
+        var state = {
+            q: '',
+            city: elCity.value,
+            user: null,
+            active: null
+        };
         var routing = { destination: null, origin: null, picking: false, request: null, sequence: 0, locationSequence: 0 };
         var routeLayer = null, originMarker = null;
 
@@ -146,6 +140,9 @@
             var i = el('i', 'bi ' + icon); a.appendChild(i);
             a.appendChild(document.createTextNode(' ' + text));
             return a;
+        }
+        function scheduleLink(c) {
+            return link(SCHEDULE_BASE + '/' + encodeURIComponent(c.id) + '/jadwal', 'Jadwal', 'bi-calendar-event', 'cl-bk-link');
         }
         function km(d) {
             return (d < 10 ? d.toFixed(1) : Math.round(d)).toString().replace('.', ',') + ' km';
@@ -359,16 +356,15 @@
             box.appendChild(el('div', 'cl-bk-pop-addr', c.address + ', ' + c.city));
             var row = el('div', 'cl-bk-pop-actions');
             row.appendChild(routeButton(c));
-            row.appendChild(link(c.site, 'Jadwal', 'bi-calendar-event'));
+            row.appendChild(scheduleLink(c));
             box.appendChild(row);
             return box;
         }
 
         function pinIcon(c) {
-            var ch = CHAIN[c.chain] || { label: '?', color: '#98a2b8' };
             return L.divIcon({
                 className: 'cl-bk-pinwrap',
-                html: '<span class="cl-bk-pin" style="--pin:' + ch.color + '">' + ch.label + '</span>',
+                html: '<span class="cl-bk-pin" aria-hidden="true"></span>',
                 iconSize: [38, 38], iconAnchor: [19, 19], popupAnchor: [0, -18]
             });
         }
@@ -389,9 +385,7 @@
             var btn = el('button', 'cl-bk-itembtn');
             btn.type = 'button';
 
-            var ch = CHAIN[c.chain] || { cls: '', label: c.chain };
             var head = el('div', 'cl-bk-itemhead');
-            head.appendChild(el('span', 'cl-bk-chain ' + ch.cls, c.chain));
             head.appendChild(el('strong', null, c.name));
             var dist = el('span', 'cl-bk-dist');
             head.appendChild(dist);
@@ -407,7 +401,7 @@
 
             var actions = el('div', 'cl-bk-itemactions');
             actions.appendChild(routeButton(c));
-            actions.appendChild(link(c.site, 'Jadwal', 'bi-calendar-event'));
+            actions.appendChild(scheduleLink(c));
             li.appendChild(actions);
 
             items[c.id] = { li: li, dist: dist };
@@ -419,9 +413,11 @@
             var q = state.q.trim().toLowerCase();
             var list = DATA.filter(function (c) {
                 if (state.city && c.city !== state.city) return false;
-                if (state.chain && c.chain !== state.chain) return false;
                 if (!q) return true;
-                return (c.name + ' ' + c.address + ' ' + c.district + ' ' + c.city + ' ' + c.chain).toLowerCase().indexOf(q) !== -1;
+                return (c.name + ' ' +
+c.address + ' ' +
+c.district + ' ' +
+c.city).toLowerCase().indexOf(q) !== -1;
             });
             if (state.user) {
                 list = list.slice().sort(function (a, b) { return distance(state.user, a) - distance(state.user, b); });
@@ -480,17 +476,6 @@
             timer = setTimeout(function () { state.q = elQuery.value; render(); }, 150);
         });
         elCity.addEventListener('change', function () { state.city = elCity.value; render(); });
-        chips.forEach(function (chip) {
-            chip.addEventListener('click', function () {
-                state.chain = chip.dataset.chain;
-                chips.forEach(function (x) {
-                    var on = x === chip;
-                    x.classList.toggle('is-active', on);
-                    x.setAttribute('aria-pressed', on ? 'true' : 'false');
-                });
-                render();
-            });
-        });
 
         function say(text) { elMsg.textContent = text || ''; elMsg.hidden = !text; }
 

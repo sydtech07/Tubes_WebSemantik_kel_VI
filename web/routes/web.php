@@ -11,8 +11,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\WatchlistController;
+use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MidtransWebhookController;
 
 Route::middleware('guest')->group(function () {
     Route::get('/masuk', [AuthController::class, 'form'])->name('login');
@@ -29,6 +32,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/ulasan/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::put('/film/{movie}/watchlist', [WatchlistController::class, 'store'])->name('watchlist.store');
     Route::delete('/film/{movie}/watchlist', [WatchlistController::class, 'destroy'])->name('watchlist.destroy');
+    Route::get('/booking/kursi', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/booking', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
@@ -38,7 +44,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('/ulasan/{review}', [AdminController::class, 'update'])->name('reviews.update');
         Route::delete('/ulasan/{review}', [AdminController::class, 'destroy'])->name('reviews.destroy');
     });
-});
+    Route::post('/booking/{booking}/bayar', [BookingController::class, 'pay'])
+        ->name('bookings.pay');
+    });
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/film/{movie}', [FilmController::class, 'show'])->name('film.show');   // {movie} dicari lewat kolom slug
@@ -54,9 +62,14 @@ Route::get('/resource/genre/{genreId}', [ResourceController::class, 'genre'])->w
 
 // Peta + daftar bioskop Medan / Sumatera Utara
 Route::get('/bioskop', [CinemaController::class, 'index'])->name('cinemas');
+Route::get('/bioskop/{cinema}/jadwal', [CinemaController::class, 'schedule'])->where('cinema', '[A-Za-z0-9_-]+')->name('cinemas.schedule');
+Route::get('/sedang-tayang', [ScreeningController::class, 'index'])->name('screenings.now');
 Route::post('/bioskop/rute', [CinemaController::class, 'route'])->middleware('throttle:cinema-routes')->name('cinemas.route');
 
 // Route Chatbot
 Route::post('/chatbot/send', [ChatbotController::class, 'handleChat'])
     ->middleware('throttle:10,1')
     ->name('chatbot.send');
+
+Route::post('/payments/midtrans/notification', MidtransWebhookController::class)
+->name('payments.midtrans.notification');

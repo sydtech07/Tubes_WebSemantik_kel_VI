@@ -6,13 +6,17 @@
     </div>
     <div id="beri-ulasan" class="cl-review-compose mb-4">
         @auth
-            <h3 class="h6 mb-3">{{ $myReview ? 'Perbarui rating dan ulasanmu' : 'Bagaimana menurutmu?' }}</h3>
-            <form action="{{ route('reviews.store', $movie) }}" method="post" class="cl-account-form">
-                @csrf
-                @method('put')
-                @include('partials.review-fields', ['review' => $myReview])
-                <button class="btn btn-cl" type="submit"><i class="bi bi-star me-1"></i> {{ $myReview ? 'Simpan perubahan' : 'Simpan rating & ulasan' }}</button>
-            </form>
+            @if ($canReview && (!$myReview || request()->boolean('edit_review')))
+                <h3 class="h6 mb-3">{{ $myReview ? 'Perbarui rating dan ulasanmu' : 'Bagaimana menurutmu?' }}</h3>
+                <form action="{{ route('reviews.store', $movie) }}" method="post" class="cl-account-form">
+                    @csrf
+                    @method('put')
+                    @include('partials.review-fields', ['review' => $myReview])
+                    <button class="btn btn-cl" type="submit"><i class="bi bi-star me-1"></i> {{ $myReview ? 'Simpan perubahan' : 'Simpan rating & ulasan' }}</button>
+                </form>
+            @else
+                <p class="cl-sub mb-0"><i class="bi bi-lock me-1"></i> Rating tersedia setelah kamu membeli tiket dan jadwal film selesai.</p>
+            @endif
         @else
             <i class="bi bi-chat-square-heart cl-empty-icon"></i>
             <h3 class="h5 mt-2">Pendapatmu berarti</h3>
@@ -61,7 +65,9 @@
             @if ($review->contains_spoiler)</details>@endif
             @if (auth()->id() === $review->user_id)
                 <div class="d-flex gap-3 align-items-center mt-3">
-                    <a href="#beri-ulasan" class="small">Edit ulasan</a>
+                    <a href="{{ route('film.show', ['movie' => $movie, 'edit_review' => 1]) }}#beri-ulasan" class="small">
+                        Edit ulasan
+                    </a>
                     <form action="{{ route('reviews.destroy', $review) }}" method="post" data-confirm="Hapus rating dan ulasanmu untuk film ini?">
                         @csrf @method('delete')
                         <button class="btn btn-link text-danger p-0 small" type="submit">Hapus</button>

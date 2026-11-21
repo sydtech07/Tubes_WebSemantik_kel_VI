@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Http;
 
 class MotorcycleRouting
 {
-    public function directions(array $origin, array $cinema): array
+    public function directions(array $origin, array $cinema, string $costing = 'motorcycle'): array
     {
         $locations = [
             ['lat' => round((float) $origin['lat'], 5), 'lon' => round((float) $origin['lng'], 5)],
             ['lat' => (float) $cinema['lat'], 'lon' => (float) $cinema['lng']],
         ];
 
-        return Cache::remember('cinelog.motorcycle.v1.'.hash('sha256', json_encode($locations)), 600, function () use ($locations) {
+        return Cache::remember('cinelog.valhalla.v2.'.hash('sha256', json_encode([$locations, $costing])), 600, function () use ($locations, $costing) {
             if (! Cache::add('cinelog.motorcycle.interval', true, 2)) {
                 $this->fail('Tunggu sebentar sebelum menghitung rute motor berikutnya.', 429);
             }
@@ -28,8 +28,10 @@ class MotorcycleRouting
                 ])->acceptJson()->connectTimeout(5)->timeout(20)
                     ->get(config('services.valhalla.url').'/route', ['json' => json_encode([
                         'locations' => $locations,
-                        'costing' => 'motorcycle',
-                        'costing_options' => ['motorcycle' => ['use_highways' => 0, 'use_tolls' => 0]],
+                    'costing' => $costing,
+                    'costing_options' => $costing === 'motorcycle'
+                        ? ['motorcycle' => ['use_highways' => 0, 'use_tolls' => 0]]
+                        : ($costing === 'auto' ? ['auto' => ['use_tolls' => 0]] : []),
                         'units' => 'kilometers',
                         'language' => 'en-US',
                         'shape_format' => 'polyline6',

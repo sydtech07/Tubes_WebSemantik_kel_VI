@@ -15,6 +15,44 @@
     <a href="#rating-saya" class="cl-chip"><i class="bi bi-chat-quote"></i> Rating & ulasan</a>
     <a href="#watchlist" class="cl-chip"><i class="bi bi-bookmark"></i> Watchlist</a>
 </nav>
+<section id="booking-saya" class="mb-5">
+    <h2 class="cl-section-title mb-4">Film yang saya booking</h2>
+
+    @forelse ($bookings as $booking)
+        <article class="cl-panel mb-3">
+            <div class="d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <a class="h5 text-decoration-none"
+                       href="{{ route('film.show', $booking->movie_slug) }}">
+                        {{ str_replace('-', ' ', ucfirst($booking->movie_slug)) }}
+                    </a>
+
+                    <small class="d-block cl-sub mt-1">
+                        {{ $booking->show_start?->format('d M Y, H:i') }}
+                        · Kursi {{ $booking->seats->pluck('seat_code')->join(', ') }}
+                    </small>
+                </div>
+
+                <div class="text-end">
+                    <span class="cl-chip text-uppercase">
+                        {{ $booking->status }}
+                    </span>
+
+                    <a class="btn btn-ghost btn-sm d-block mt-2"
+                       href="{{ route('bookings.show', $booking) }}">
+                        Detail booking
+                    </a>
+                </div>
+            </div>
+        </article>
+    @empty
+        <div class="cl-panel text-center py-5">
+            Belum ada booking.
+        </div>
+    @endforelse
+
+    {{ $bookings->withQueryString()->fragment('booking-saya')->links() }}
+</section>
 <section id="watchlist" class="mb-5">
     <h2 class="cl-section-title mb-4">Watchlist saya</h2>
     <div class="row g-3">
@@ -46,7 +84,7 @@
             @if ($review->title)<h3 class="h6 mt-3">{{ $review->title }}</h3>@endif
             @if ($review->body)<p class="cl-review-body">{{ $review->body }}</p>@endif
             <div class="d-flex gap-3 mt-3 align-items-center">
-                <a class="small" href="{{ route('film.show', $review->movie) }}#beri-ulasan">Edit rating & ulasan</a>
+                <a class="small" href="{{ route('film.show', ['movie' => $review->movie, 'edit_review' => 1]) }}#beri-ulasan">
                 <form action="{{ route('reviews.destroy', $review) }}" method="post" data-confirm="Hapus rating dan ulasan ini?">@csrf @method('delete')<input type="hidden" name="return_to" value="profile"><button type="submit" class="btn btn-link p-0 text-danger small">Hapus</button></form>
             </div>
         </article>

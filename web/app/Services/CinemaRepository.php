@@ -4,11 +4,6 @@ namespace App\Services;
 
 use RuntimeException;
 
-/**
- * Daftar bioskop Sumatera Utara dari resources/data/bioskop-sumut.json.
- * Sumber data statis (bukan API) karena tidak ada API publik resmi untuk lokasi bioskop;
- * untuk menambah/mengubah bioskop cukup edit berkas JSON itu.
- */
 class CinemaRepository
 {
     /** @var array<int, array<string, mixed>>|null */
@@ -17,14 +12,60 @@ class CinemaRepository
     /** @return array<int, array<string, mixed>> */
     public function all(): array
     {
-        if (self::$rows === null) {
-            $json = @file_get_contents(resource_path('data/bioskop-sumut.json'));
-            if ($json === false) {
-                throw new RuntimeException('Berkas resources/data/bioskop-sumut.json tidak ditemukan.');
-            }
-            self::$rows = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        if (self::$rows !== null) {
+            return self::$rows;
         }
 
-        return self::$rows;
+        $path = base_path('../data/clean/cinemas.csv');
+
+        if (! is_file($path)) {
+            throw new RuntimeException(
+                'Berkas data/clean/cinemas.csv tidak ditemukan.'
+            );
+        }
+
+        $handle = fopen($path, 'rb');
+
+        if ($handle === false) {
+            throw new RuntimeException(
+                'Berkas data/clean/cinemas.csv tidak dapat dibuka.'
+            );
+        }
+
+        $header = fgetcsv($handle);
+
+        if ($header === false) {
+            fclose($handle);
+            throw new RuntimeException(
+                'cinemas.csv tidak memiliki header.'
+            );
+        }
+
+        $rows = [];
+
+        while (($values = fgetcsv($handle)) !== false) {
+            if (count($values) !== count($header)) {
+                continue;
+            }
+
+            $row = array_combine($header, $values);
+
+            $rows[] = [
+                'id' => trim((string) ($row['cinema_id'] ?? '')),
+                'name' => trim((string) ($row['name'] ?? '')),
+                'chain' => trim((string) ($row['brand'] ?? '')),
+                'address' => trim((string) ($row['street_address'] ?? '')),
+                'city' => trim((string) ($row['address_locality'] ?? '')),
+                'district' => '',
+                'lat' => (float) ($row['latitude'] ?? 0),
+                'lng' => (float) ($row['longitude'] ?? 0),
+                'site' => trim((string) ($row['website'] ?? '')),
+                'coord' => '',
+            ];
+        }
+
+        fclose($handle);
+
+        return self::$rows = $rows;
     }
 }

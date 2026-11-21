@@ -18,6 +18,12 @@ class ProfileController extends Controller
             'reviewCount' => $user->reviews()->count(),
             'watchlistCount' => $user->watchlistMovies()->count(),
             'averageRating' => $user->reviews()->avg('rating'),
+            'bookings' => $user->bookings()
+                ->with('seats')
+                ->latest()
+                ->paginate(10, ['*'], 'bookings_page'),
+
+            'bookingCount' => $user->bookings()->count(),
         ]);
     }
 

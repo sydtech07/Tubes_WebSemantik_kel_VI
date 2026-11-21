@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\CinemaRepository;
 use App\Services\CinemaRouting;
+use App\Services\ScreeningRepository;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -58,6 +59,19 @@ class CinemaController extends Controller
             'cinemas' => $cinemas,
             'cities' => $cities,
             'jsonLd' => $jsonLd,
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function schedule(Request $request, string $cinema, CinemaRepository $cinemas, ScreeningRepository $screenings)
+    {
+        $selected = collect($cinemas->all())->firstWhere('id', $cinema);
+        abort_unless($selected, 404, 'Bioskop tidak ditemukan.');
+
+        return response()->view('bioskop-jadwal', [
+            'cinema' => $selected,
+            'schedules' => $screenings->scheduleForCinema($cinema, 7, $request->string('film')->toString() ?: null),
+            'selectedFilm' => $request->string('film')->toString() ?: null,
+            'windowDays' => 7,
         ])->header('Cache-Control', 'no-store, private');
     }
 }

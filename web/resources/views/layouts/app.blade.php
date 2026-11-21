@@ -48,6 +48,9 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('cinemas') ? 'active' : '' }}" href="{{ route('cinemas') }}">Bioskop</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('screenings.*') ? 'active' : '' }}" href="{{ route('screenings.now') }}">Sedang Tayang</a>
+                </li>
             </ul>
                        <form class="cl-search position-relative" role="search" action="{{ route('search') }}" method="get">
                 <div class="input-group">

@@ -40,6 +40,11 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-3.1-flash-lite'),
     ],
 
+    'mongodb' => [
+        'uri' => env('MONGODB_URI'),
+        'database' => env('MONGO_DATABASE', 'cinelog_chat'),
+    ],
+
     'openrouteservice' => [
         'key' => env('ORS_API_KEY'),
         'url' => 'https://api.heigit.org/openrouteservice',
@@ -47,6 +52,12 @@ return [
 
     'valhalla' => [
         'url' => 'https://valhalla1.openstreetmap.de',
+    ],
+
+    'midtrans' => [
+    'server_key' => env('MIDTRANS_SERVER_KEY'),
+    'client_key' => env('MIDTRANS_CLIENT_KEY'),
+    'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
     ],
 
 ];

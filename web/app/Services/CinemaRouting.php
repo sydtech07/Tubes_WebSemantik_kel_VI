@@ -12,12 +12,18 @@ class CinemaRouting
     public function directions(array $origin, array $cinema, string $profile): array
     {
         if ($profile === 'motorcycle') {
-            return app(MotorcycleRouting::class)->directions($origin, $cinema);
+            return app(MotorcycleRouting::class)->directions($origin, $cinema, 'motorcycle');
         }
 
         $key = config('services.openrouteservice.key');
         if (! $key) {
-            $this->fail('Layanan rute belum dikonfigurasi.', 503);
+            $costing = match ($profile) {
+                'foot-walking' => 'pedestrian',
+                'cycling-regular' => 'bicycle',
+                default => 'auto',
+            };
+
+            return app(MotorcycleRouting::class)->directions($origin, $cinema, $costing);
         }
 
         $coordinates = [

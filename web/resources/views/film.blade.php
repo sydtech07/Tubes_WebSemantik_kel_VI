@@ -125,7 +125,22 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        <a class="btn btn-cl" href="{{ auth()->check() ? '#beri-ulasan' : route('login', ['next' => route('film.show', $movie, false).'#beri-ulasan']) }}"><i class="bi bi-star me-1"></i> Beri rating & ulasan</a>
+                            @php
+                                $reviewButtonUrl = auth()->check() && $canReview
+                                    ? ($myReview
+                                        ? route('film.show', ['movie' => $movie, 'edit_review' => 1]).'#beri-ulasan'
+                                        : '#beri-ulasan')
+                                    : (auth()->check()
+                                        ? '#ulasan-pengguna'
+                                        : route('login', ['next' => route('film.show', $movie, false).'#beri-ulasan']));
+                            @endphp
+
+                            <a class="btn btn-cl" href="{{ $reviewButtonUrl }}">
+                                <i class="bi bi-star me-1"></i>
+                                {{ auth()->check() && $canReview
+                                    ? ($myReview ? 'Edit rating & ulasan' : 'Beri rating & ulasan')
+                                    : 'Syarat rating' }}
+                            </a>
                         @auth
                             <form action="{{ route($inWatchlist ? 'watchlist.destroy' : 'watchlist.store', $movie) }}" method="post">
                                 @csrf @method($inWatchlist ? 'delete' : 'put')
@@ -254,5 +269,32 @@
             </aside>
         </div>
     </div>
+    @if (!empty($screeningCinemas))
+        <section class="mt-5" aria-labelledby="screening-cinemas-title">
+            <p class="text-uppercase small fw-semibold mb-1" style="color: var(--cl-accent, #ff8a00); letter-spacing: .12em">Pesan Tiket</p>
+            <h2 id="screening-cinemas-title" class="cl-section-title h3 mb-3">Pilih Bioskop</h2>
+            <div class="row row-cols-1 row-cols-md-3 g-3">
+                @foreach ($screeningCinemas as $cinema)
+                    <div class="col"><div class="cl-panel h-100"><h3 class="h5">{{ $cinema['name'] }}</h3><p class="cl-sub mb-3">{{ $cinema['city'] }}</p><a class="btn btn-cl btn-sm" href="{{ route('cinemas.schedule', ['cinema' => $cinema['id'], 'film' => $movie->slug]) }}">Pilih jadwal</a></div></div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if (!empty($recommendations))
+        <section class="mt-5" aria-labelledby="recommendation-title">
+            <div class="d-flex justify-content-between align-items-end mb-3">
+                <div>
+                    <p class="text-uppercase small fw-semibold mb-1" style="color: var(--cl-accent, #ff8a00); letter-spacing: .12em">Dari Knowledge Graph</p>
+                    <h2 id="recommendation-title" class="cl-section-title h3 mb-0">Film yang mungkin kamu suka</h2>
+                </div>
+            </div>
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+                @foreach ($recommendations as $recommendation)
+                    @include('partials.film-card', ['m' => $recommendation, 'r' => null, 'i' => $loop->index, 'note' => $recommendation['matches'].' kecocokan semantik'])
+                @endforeach
+            </div>
+        </section>
+    @endif
 </article>
 @endsection

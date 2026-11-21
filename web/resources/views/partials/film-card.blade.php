@@ -16,6 +16,13 @@
                     <span>{{ number_format($m['vote'], 1) }}</span>
                 </div>
             @endif
+
+            @if (! empty($badge))
+                <span class="cl-film-status-badge">
+                    <i class="bi bi-camera-reels-fill"></i>
+                    {{ $badge }}
+                </span>
+            @endif
         </div>
         <div class="cl-card-body">
             <div class="cl-title">{{ $m['title'] }}</div>

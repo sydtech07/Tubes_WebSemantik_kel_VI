@@ -301,6 +301,51 @@ class MovieRepository
         ];
     }
 
+    /**
+     * Rekomendasi semantik berdasarkan genre dan keyword yang sama dengan film target.
+     * @return array<int, array<string, mixed>>
+     */
+    public function recommendations(string $slug, int $limit = 6): array
+    {
+        $limit = max(1, min($limit, 12));
+        $cacheKey = 'cinelog.recommendations.v1.'.md5($slug).'.'.$limit;
+
+        return Cache::remember($cacheKey, 600, function () use ($slug, $limit): array {
+            $target = $this->sparql->iri($this->sparql->filmUrl($slug));
+            $query = <<<SPARQL
+            SELECT ?m ?title ?url ?date ?poster ?vote (COUNT(DISTINCT ?signal) AS ?matches) WHERE {
+              ?target a cin:Movie ; schema:url {$target} .
+              ?m a cin:Movie ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .
+              FILTER (?m != ?target)
+              {
+                ?target schema:genre ?signal .
+                ?m schema:genre ?signal .
+              }
+              UNION
+              {
+                ?target cin:hasKeyword ?signal .
+                ?m cin:hasKeyword ?signal .
+              }
+              OPTIONAL { ?m schema:image ?poster }
+              OPTIONAL { ?m cin:tmdbVoteAverage ?vote }
+            }
+            GROUP BY ?m ?title ?url ?date ?poster ?vote
+            ORDER BY DESC(?matches) DESC(?vote) DESC(?date)
+            LIMIT {$limit}
+            SPARQL;
+
+            return array_map(fn (array $row) => [
+                'iri' => $row['m'],
+                'title' => $row['title'],
+                'slug' => Str::after($row['url'], '/film/'),
+                'date' => $row['date'],
+                'poster' => $row['poster'] ?? null,
+                'vote' => isset($row['vote']) ? (float) $row['vote'] : null,
+                'matches' => (int) ($row['matches'] ?? 0),
+            ], $this->sparql->select($this->sparql->prefixes().$query));
+        });
+    }
+
     public static function normalizeGenres(mixed $genres): array
     {
         return array_slice(array_values(array_unique(array_map('intval', array_filter(Arr::wrap($genres),
