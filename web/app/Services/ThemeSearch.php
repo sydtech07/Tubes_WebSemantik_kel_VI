@@ -130,8 +130,8 @@ class ThemeSearch
         $byKeyword = <<<SPARQL
         SELECT DISTINCT ?m ?title ?url ?date ?poster ?pop ?vote ?c ?label WHERE {
           VALUES (?c ?pat) { {$values} }
-          ?m a cin:Movie ; cin:hasl Keyword ?k ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .
-          ?k skos:prefLabel ?labe.
+          ?m a cin:Movie ; cin:hasKeyword ?k ; schema:name ?title ; schema:url ?url ; schema:datePublished ?date .
+          ?k skos:prefLabel ?label .
           FILTER( REGEX(STR(?label), ?pat, "i") )
           OPTIONAL { ?m schema:image ?poster }
           OPTIONAL { ?m cin:popularity ?pop }
@@ -206,7 +206,10 @@ class ThemeSearch
             unset($f['match'], $f['labels']);
 
             return $f;
-        }, array_values($hits));
+        }, array_values(array_filter(
+            $hits,
+            fn (array $f) => count($f['match']) === count($concepts)
+        )));
 
         usort($films, fn ($a, $b) => [$b['matched'], $b['score'], $b['pop'] ?? 0, $a['title']]
             <=> [$a['matched'], $a['score'], $a['pop'] ?? 0, $b['title']]);

@@ -45,14 +45,12 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('home', 'film.show', 'search', 'person.show') ? 'active' : '' }}" href="{{ route('home') }}">Katalog</a>
                 </li>
-                {{--
-                <li class="nav-item">
+                <!-- <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('cinemas') ? 'active' : '' }}" href="{{ route('cinemas') }}">Bioskop</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('screenings.*') ? 'active' : '' }}" href="{{ route('screenings.now') }}">Sedang Tayang</a>
-                </li>
-                --}}
+                </li> -->
             </ul>
                        <form class="cl-search position-relative" role="search" action="{{ route('search') }}" method="get">
                 <div class="input-group">
@@ -92,7 +90,7 @@
 
 <footer class="cl-footer">
     <div class="container text-center text-md-start">
-        <strong>CINÉLOG</strong> · katalog film berbasis data semantik (RDF, SPARQL, Fuseki).
+        <strong>CINÉLOG</strong>
     </div>
 </footer>
 
@@ -199,12 +197,25 @@
     function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
 
     // ---- format ringan balasan AI (**tebal**, daftar berpoin, paragraf) tanpa innerHTML ----
+    function appendText(parent, text) {
+        text = text.replace(/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/film\/[A-Za-z0-9_-]+)/gi, '$1');
+        text.split(/(\/film\/[A-Za-z0-9_-]+)/g).forEach(function (part) {
+            if (/^\/film\/[A-Za-z0-9_-]+$/.test(part)) {
+                var a = document.createElement('a');
+                a.href = part;
+                a.textContent = part;
+                parent.appendChild(a);
+            } else if (part) {
+                parent.appendChild(document.createTextNode(part.replace(/\*/g, '')));
+            }
+        });
+    }
     function inline(parent, text) {
         text.split(/(\*\*[^*]+\*\*)/g).forEach(function (part) {
             if (/^\*\*[^*]+\*\*$/.test(part)) {
                 var b = document.createElement('strong'); b.textContent = part.slice(2, -2); parent.appendChild(b);
             } else if (part) {
-                parent.appendChild(document.createTextNode(part.replace(/\*/g, '')));
+                appendText(parent, part);
             }
         });
     }

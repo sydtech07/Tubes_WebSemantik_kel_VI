@@ -41,6 +41,7 @@ class ChatbotService
         $prompt = "Kamu adalah asisten film CINÉLOG. Jawab dalam bahasa Indonesia dengan ringkas dan jujur.\n"
             ."Jawab pertanyaan film berdasarkan DATA knowledge graph CINÉLOG di bawah ini. Data itu hasil pencarian untuk pertanyaan pengguna, termasuk rekomendasi berdasarkan genre, sinopsis, kata kunci, dan skor TMDB.\n"
             ."Jangan mengarang judul, skor, sinopsis, atau fakta yang tidak ada di data. Jika data relevan tersedia, gunakan data tersebut secara langsung. Jika tidak ada, katakan bahwa dataset belum punya data yang cocok. Skor dan jumlah suara adalah milik TMDB.\n"
+            ."Untuk tautan film, gunakan URL relatif /film/... yang tercantum di data; jangan membuat URL localhost atau domain lain.\n"
             ."DATA RDF/FUSEKI:\n{$context['text']}\n"
             ."RIWAYAT SINGKAT:\n{$history}\n"
             ."PERTANYAAN PENGGUNA:\n{$userQuery}";
@@ -71,6 +72,7 @@ class ChatbotService
                 return $this->semanticFallback($context);
             }
 
+            $reply = $this->normalizeFilmUrls($reply);
             $this->saveHistory((string) session()->getId(), $userQuery, $reply);
 
             return $reply;
@@ -160,7 +162,7 @@ class ChatbotService
             $movies = $sparql->select($sparqlQuery);
             $movies = array_map(fn (array $movie) => [
                 'title' => $movie['title'],
-                'url' => $movie['url'],
+                'url' => route('film.show', ['movie' => basename(parse_url($movie['url'], PHP_URL_PATH) ?: '')], false),
                 'genres' => $movie['genres'] ?? '',
                 'rating' => $movie['rating'] ?? '',
                 'votes' => $movie['votes'] ?? '',
@@ -223,10 +225,11 @@ class ChatbotService
     {
         $normalized = mb_strtolower(preg_replace('/[^\p{L}\p{N}]+/u', ' ', $query) ?? '');
         $stopWords = [
-            'ada', 'aktor', 'aktris', 'apa', 'atau', 'bagus', 'best', 'buat', 'dan', 'dengan', 'di', 'dong', 'film',
-            'films', 'for', 'genre', 'in', 'info', 'ke', 'kasih', 'minta', 'movie', 'movies', 'of', 'sutradara',
-            'paling', 'rekomendasi', 'rekomendasikan', 'saran', 'saranin', 'saya', 'seru', 'tentang',
-            'terbaik', 'the', 'tahun', 'tolong', 'tonton', 'untuk', 'yang',
+            'ada', 'aktor', 'aktris', 'apa', 'atau', 'bagus', 'best', 'berperan', 'bertema', 'bertemakan',
+            'buat', 'dan', 'dengan', 'di', 'dibintangi', 'dibintangkan', 'diperankan', 'dong', 'film', 'films',
+            'for', 'genre', 'in', 'info', 'ke', 'kasih', 'minta', 'movie', 'movies', 'of', 'pemeran', 'perankan',
+            'saja', 'siapa', 'sutradara', 'tema', 'tentang', 'paling', 'rekomendasi', 'rekomendasikan', 'saran',
+            'saranin', 'saya', 'seru', 'terbaik', 'the', 'tahun', 'tolong', 'tonton', 'untuk', 'yang',
         ];
         $terms = array_values(array_unique(array_filter(
             explode(' ', $normalized),
@@ -234,6 +237,15 @@ class ChatbotService
         )));
 
         return array_slice($terms, 0, 6);
+    }
+
+    private function normalizeFilmUrls(string $reply): string
+    {
+        return preg_replace(
+            '~https?://(?:localhost|127\.0\.0\.1)(?::\d+)?(/film/[A-Za-z0-9_-]+)~i',
+            '$1',
+            $reply
+        ) ?? $reply;
     }
 
     /**

@@ -99,17 +99,4 @@
         </div>
     @endif
 
-    @if (! empty($result['queries']))
-        <details class="mt-5">
-            <summary class="text-muted small">Lihat query SPARQL yang dijalankan ke Fuseki
-                @if (! empty($result['timings']))
-                    (waktu: {{ implode(', ', array_map(fn ($k, $v) => $k . ' ' . $v . ' ms', array_keys($result['timings']), $result['timings'])) }})
-                @endif
-            </summary>
-            @foreach ($result['queries'] as $nama => $query)
-                <p class="small mb-1 mt-3"><strong>{{ $nama }}</strong>@if (isset($result['timings'][$nama])) <span class="text-muted">: {{ $result['timings'][$nama] }} ms</span>@endif</p>
-                <pre class="cl-panel small" style="white-space: pre-wrap">{{ $query }}</pre>
-            @endforeach
-        </details>
-    @endif
 @endsection

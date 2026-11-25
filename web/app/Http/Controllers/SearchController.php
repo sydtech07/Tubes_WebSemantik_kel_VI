@@ -31,7 +31,9 @@ class SearchController extends Controller
             // Semua query utama gagal dan tidak ada hasil: itu masalah server, bukan "tidak ditemukan".
             $gagalUtama = count($result['failed'] ?? []);
 
-            if ($error === null) {
+            // Jangan jalankan pencarian tema untuk query yang sudah cocok dengan judul/nama/karakter/genre.
+            // Hal ini mencegah kata umum dari nama seperti "Other Mommy" menarik film yang tidak berkaitan.
+            if ($error === null && ! $this->adaHasilUtama($result)) {
                 try {
                     $theme = $themes->search($q);
                     // Film yang sudah tampil di bagian "Film" (cocok judul) tidak diulang di bagian tema.
@@ -95,5 +97,10 @@ class SearchController extends Controller
     private function kosong(array $r, array $theme): bool
     {
         return ! ($r['films'] || $r['people'] || $r['characters'] || $r['genres'] || $theme['films']);
+    }
+
+    private function adaHasilUtama(array $r): bool
+    {
+        return (bool) ($r['films'] || $r['people'] || $r['characters'] || $r['genres']);
     }
 }

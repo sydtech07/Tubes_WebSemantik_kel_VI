@@ -64,7 +64,9 @@ class ChatbotServiceTest extends TestCase
             && str_contains($request['contents'][0]['parts'][0]['text'], 'Rekomendasikan film action terbaik')
             && str_contains($request['contents'][0]['parts'][0]['text'], 'Film Action dari Dataset')
             && str_contains($request['contents'][0]['parts'][0]['text'], 'Sinopsis yang dibaca dari Fuseki.')
-            && str_contains($request['contents'][0]['parts'][0]['text'], 'Skor TMDB: 8.4/10'));
+            && str_contains($request['contents'][0]['parts'][0]['text'], 'Skor TMDB: 8.4/10')
+            && str_contains($request['contents'][0]['parts'][0]['text'], 'URL: /film/film-action-2026-123')
+            && ! str_contains($request['contents'][0]['parts'][0]['text'], 'URL: http://localhost'));
     }
 
     public function test_it_returns_dataset_recommendations_when_gemini_is_unavailable(): void
@@ -79,8 +81,27 @@ class ChatbotServiceTest extends TestCase
         $reply = app(ChatbotService::class)->askMovieBot('Rekomendasi film?');
 
         $this->assertStringContainsString('Film Action dari Dataset', $reply);
-        $this->assertStringContainsString('http://localhost:8000/film/film-action-2026-123', $reply);
+        $this->assertStringContainsString('/film/film-action-2026-123', $reply);
+        $this->assertStringNotContainsString('localhost', $reply);
         $this->assertStringContainsString('Skor TMDB 8.4/10', $reply);
+    }
+
+    public function test_it_removes_localhost_from_film_urls_returned_by_gemini(): void
+    {
+        Config::set('services.gemini.api_key', 'test-api-key');
+        Config::set('services.gemini.model', 'gemini-3.1-flash-lite');
+        $this->mockMovies([$this->datasetMovie()]);
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => 'Tonton http://localhost:8000/film/film-action-2026-123']]]],
+                ],
+            ]),
+        ]);
+
+        $reply = app(ChatbotService::class)->askMovieBot('Rekomendasi film action');
+
+        $this->assertSame('Tonton /film/film-action-2026-123', $reply);
     }
 
     public function test_it_searches_movie_summaries_and_keywords_for_context(): void
@@ -106,6 +127,35 @@ class ChatbotServiceTest extends TestCase
         Http::assertSent(fn (Request $request) => $request->url() ===
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
             && str_contains($request['contents'][0]['parts'][0]['text'], 'Sinopsis yang dibaca dari Fuseki.'));
+    }
+
+    public function test_genre_intent_words_do_not_become_required_text_matches(): void
+    {
+        Config::set('services.gemini.api_key', null);
+        $this->mockMovies([], function (string $query) {
+            return str_contains($query, 'LCASE(STR(?genreLabel)) IN ("horror")')
+                && ! str_contains($query, 'bertema')
+                && ! str_contains($query, 'CONTAINS(');
+        });
+
+        $reply = app(ChatbotService::class)->askMovieBot('film yang bertema horror');
+
+        $this->assertStringContainsString('belum menemukan film', $reply);
+    }
+
+    public function test_actor_query_words_are_separated_from_the_actor_name(): void
+    {
+        Config::set('services.gemini.api_key', null);
+        $this->mockMovies([], function (string $query) {
+            return str_contains($query, 'CONTAINS(LCASE(STR(?personName)), "tom")')
+                && str_contains($query, 'CONTAINS(LCASE(STR(?personName)), "holland")')
+                && ! str_contains($query, 'perankan')
+                && ! str_contains($query, '"saja"');
+        });
+
+        $reply = app(ChatbotService::class)->askMovieBot('film apa saja yang di perankan Tom Holland');
+
+        $this->assertStringContainsString('belum menemukan film', $reply);
     }
 
     public function test_it_reports_dataset_unavailability_instead_of_claiming_no_matches(): void
