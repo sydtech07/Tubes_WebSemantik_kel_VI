@@ -264,6 +264,12 @@ def build_graph(base: str) -> tuple[Graph, Counter]:
             g.add((cinema, CIN.district, Literal(district)))
         if address:
             g.add((cinema, SCHEMA.address, Literal(address, lang="id")))
+        region = str(row.get("region", "")).strip()
+        if region:
+            g.add((cinema, SCHEMA.addressRegion, Literal(region, lang="id")))
+        source = str(row.get("source", "")).strip()
+        if source and URL_OK.match(source):
+            g.add((cinema, DCTERMS.source, URIRef(source)))
         site = str(row.get("site", "")).strip()
         if site and URL_OK.match(site):
             g.add((cinema, SCHEMA.url, URIRef(site)))

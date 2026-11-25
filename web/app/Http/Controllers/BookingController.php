@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Movie;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,30 @@ class BookingController extends Controller
     {
         abort_unless($booking->user_id === request()->user()->id, 403);
         return view('booking.show', compact('booking'));
+    }
+
+    public function receipt(Booking $booking)
+    {
+        abort_unless($booking->user_id === request()->user()->id, 403);
+        abort_unless(in_array($booking->status, ['paid', 'completed'], true), 404);
+        $movie = Movie::where('slug', $booking->movie_slug)->first();
+
+        return view('booking.receipt', ['booking' => $booking->load('seats'), 'movie' => $movie]);
+    }
+
+    public function syncPayment(Booking $booking, \App\Services\MidtransPayment $payment)
+    {
+        abort_unless($booking->user_id === request()->user()->id, 403);
+        $booking = $payment->sync($booking);
+
+        return response()->json([
+            'status' => $booking->status,
+            'message' => match ($booking->status) {
+                'paid', 'completed' => 'Pembayaran sudah dikonfirmasi oleh Midtrans.',
+                'failed' => 'Pembayaran dibatalkan, ditolak, atau kedaluwarsa.',
+                default => 'Pembayaran masih menunggu penyelesaian di Midtrans.',
+            },
+        ]);
     }
     public function pay(
         Request $request,

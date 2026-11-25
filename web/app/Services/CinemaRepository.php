@@ -56,11 +56,12 @@ class CinemaRepository
                 'chain' => trim((string) ($row['brand'] ?? '')),
                 'address' => trim((string) ($row['street_address'] ?? '')),
                 'city' => trim((string) ($row['address_locality'] ?? '')),
-                'district' => '',
+                'district' => trim((string) ($row['district'] ?? '')),
+                'region' => trim((string) ($row['address_region'] ?? '')),
                 'lat' => (float) ($row['latitude'] ?? 0),
                 'lng' => (float) ($row['longitude'] ?? 0),
                 'site' => trim((string) ($row['website'] ?? '')),
-                'coord' => '',
+                'coord' => trim((string) ($row['coordinate_source'] ?? '')),
             ];
         }
 

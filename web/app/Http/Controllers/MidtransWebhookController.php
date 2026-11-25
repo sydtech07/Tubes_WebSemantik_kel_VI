@@ -2,22 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
+use App\Services\PaymentStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class MidtransWebhookController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke(Request $request, PaymentStatus $payments)
     {
-        $data = $request->all();
+        $data = $request->validate([
+            'order_id' => ['required', 'string', 'max:100'],
+            'status_code' => ['required', 'string', 'regex:/^[0-9]{3}$/'],
+            'gross_amount' => ['required', 'string', 'regex:/^[0-9]+(?:\.[0-9]{1,2})?$/'],
+            'signature_key' => ['required', 'string', 'size:128'],
+            'transaction_status' => ['required', 'string'],
+            'fraud_status' => ['nullable', 'string'],
+            'currency' => ['required', 'in:IDR'],
+        ]);
+
+        $secret = config('services.midtrans.signature_key') ?: config('services.midtrans.server_key');
+        abort_if(! is_string($secret) || trim($secret) === '', 503, 'Kunci verifikasi pembayaran belum dikonfigurasi.');
 
         $orderId = (string) ($data['order_id'] ?? '');
         $statusCode = (string) ($data['status_code'] ?? '');
         $grossAmount = (string) ($data['gross_amount'] ?? '');
         $signature = hash(
             'sha512',
-            $orderId.$statusCode.$grossAmount.config('services.midtrans.server_key')
+            $orderId.$statusCode.$grossAmount.$secret
         );
 
         abort_unless(
@@ -25,21 +35,7 @@ class MidtransWebhookController extends Controller
             403
         );
 
-        $booking = Booking::where('midtrans_order_id', $orderId)->firstOrFail();
-        $transaction = $data['transaction_status'] ?? null;
-        $fraud = $data['fraud_status'] ?? null;
-
-        if (
-            $transaction === 'settlement' ||
-            ($transaction === 'capture' && $fraud === 'accept')
-        ) {
-            $booking->update([
-                'status' => 'paid',
-                'paid_at' => Carbon::now(),
-            ]);
-        } elseif (in_array($transaction, ['deny', 'cancel', 'expire'], true)) {
-            $booking->update(['status' => 'failed']);
-        }
+        $payments->apply($data);
 
         return response()->json(['ok' => true]);
     }

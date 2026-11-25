@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Bioskop di Sumatera Utara - CINÉLOG')
-@section('description', 'Peta dan daftar bioskop di Medan dan Sumatera Utara, lengkap dengan alamat dan petunjuk arah.')
+@section('title', 'Direktori Bioskop - CINÉLOG')
+@section('description', 'Temukan bioskop di Medan, Sumatera Utara, dan kota lainnya, lengkap dengan alamat dan petunjuk arah.')
 
 @push('head')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
@@ -9,9 +9,9 @@
 @endpush
 
 @section('content')
-    <h1 class="cl-section-title">Bioskop di Sumatera Utara</h1>
+    <h1 class="cl-section-title">Temukan Bioskop</h1>
     <p class="cl-sub mt-2 mb-4">
-        <span id="bkCount">{{ count($cinemas) }}</span> bioskop di Medan dan Sumatera Utara.
+        <span id="bkCount">{{ count($cinemas) }}</span> bioskop sesuai filter.
         Klik bioskop untuk melihatnya di peta.
     </p>
 

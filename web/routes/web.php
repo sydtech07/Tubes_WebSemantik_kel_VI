@@ -9,6 +9,7 @@ use App\Http\Controllers\CinemaReviewController;
 use App\Http\Controllers\FilmController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MidtransWebhookController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResourceController;
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking/kursi', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/booking', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/booking/{booking}/receipt', [BookingController::class, 'receipt'])->name('bookings.receipt');
+    Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications');
+    Route::post('/booking/{booking}/status-pembayaran', [BookingController::class, 'syncPayment'])->middleware('throttle:10,1')->name('bookings.payment-status');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');

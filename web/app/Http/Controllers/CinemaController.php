@@ -50,7 +50,7 @@ class CinemaController extends Controller
         $jsonLd = [
             '@context' => 'https://schema.org',
             '@type' => 'ItemList',
-            'name' => 'Bioskop di Medan dan Sumatera Utara',
+            'name' => 'Direktori bioskop CINÉLOG',
             'itemListElement' => array_map(fn (array $c, int $i) => [
                 '@type' => 'ListItem',
                 'position' => $i + 1,
@@ -61,7 +61,7 @@ class CinemaController extends Controller
                         '@type' => 'PostalAddress',
                         'streetAddress' => $c['address'],
                         'addressLocality' => $c['city'],
-                        'addressRegion' => 'Sumatera Utara',
+                        'addressRegion' => $c['region'],
                         'addressCountry' => 'ID',
                     ],
                     'geo' => ['@type' => 'GeoCoordinates', 'latitude' => $c['lat'], 'longitude' => $c['lng']],

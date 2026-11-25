@@ -39,5 +39,5 @@
         </div>
     @endif
 
-    <p class="cl-sub small mt-3"><i class="bi bi-info-circle me-1"></i> Jadwal berasal dari dataset screening RDF CINÉLOG dan digunakan untuk demonstrasi semantik.</p>
+    <p class="cl-sub small mt-3"><i class="bi bi-info-circle me-1"></i> Jadwal, studio, dan harga tiket merupakan data simulasi untuk demonstrasi CINÉLOG, bukan jadwal resmi bioskop.</p>
 @endsection
